@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, UserPlus } from 'lucide-react'
 import { MobileHeader } from '@/components/mobile/MobileHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,8 @@ import { Select } from '@/components/ui/select'
 import { useNavigate } from 'react-router-dom'
 import { Spinner } from '@/components/ui/spinner'
 import { useUsers, useDepartments } from '@/features/users/hooks/useUsers'
-import { userDetailPath } from '@/routes/routePaths'
+import { useHasRole } from '@/features/auth/hooks/useAuth'
+import { routePaths, userDetailPath } from '@/routes/routePaths'
 
 function initials(name: string) {
   return name
@@ -21,6 +22,7 @@ function initials(name: string) {
 
 export function MobileUsersPage() {
   const navigate = useNavigate()
+  const canManage = useHasRole('super-admin', 'hrd')
   const [search, setSearch] = useState('')
   const [departmentId, setDepartmentId] = useState('')
   const [page, setPage] = useState(1)
@@ -39,6 +41,11 @@ export function MobileUsersPage() {
       <MobileHeader title="Karyawan" />
 
       <div className="space-y-3 p-4">
+        {canManage && (
+          <Button className="w-full" onClick={() => navigate(routePaths.userNew)}>
+            <UserPlus className="h-4 w-4" /> Tambah Karyawan
+          </Button>
+        )}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input

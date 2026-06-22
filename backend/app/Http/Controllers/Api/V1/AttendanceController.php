@@ -31,11 +31,17 @@ class AttendanceController extends Controller
 
         $query = Attendance::with(['location', 'user'])->latest('date');
 
-        // Employees can only see their own records; approvers/admins can filter.
-        if (! $user->isApprover() && ! $user->hasAnyRole(['super-admin'])) {
-            $query->where('user_id', $user->id);
-        } elseif ($request->filled('user_id')) {
+        // This endpoint backs the personal "Absensi" history, so it always scopes
+        // to the current user's own records. Approvers/admins may inspect another
+        // employee only by explicitly passing user_id (used for ad-hoc lookups);
+        // without it — e.g. on their own self-service page — they still see only
+        // their own history, never everyone's.
+        $canInspectOthers = $user->isApprover() || $user->hasAnyRole(['super-admin']);
+
+        if ($canInspectOthers && $request->filled('user_id')) {
             $query->where('user_id', $request->integer('user_id'));
+        } else {
+            $query->where('user_id', $user->id);
         }
 
         $query->when($request->filled('date_from'), fn ($q) => $q->whereDate('date', '>=', $request->date('date_from')))

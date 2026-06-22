@@ -6,13 +6,19 @@ export const routePaths = {
   leave: '/leave',
   overtime: '/overtime',
   requests: '/requests',
+  attendanceRecap: '/attendance-recap',
   recap: '/recap',
   approvals: '/approvals',
   users: '/users',
+  userNew: '/users/new',
   userDetail: '/users/:id',
+  userEdit: '/users/:id/edit',
 } as const
 
 export type RoutePath = (typeof routePaths)[keyof typeof routePaths]
 
 /** Build the concrete path to a user's detail page. */
 export const userDetailPath = (id: number | string) => `/users/${id}`
+
+/** Build the concrete path to a user's edit page. */
+export const userEditPath = (id: number | string) => `/users/${id}/edit`

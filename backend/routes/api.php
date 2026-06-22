@@ -4,10 +4,12 @@ use App\Http\Controllers\Api\V1\ApprovalController;
 use App\Http\Controllers\Api\V1\AttendanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DepartmentController;
+use App\Http\Controllers\Api\V1\EmployeeOffPeriodController;
 use App\Http\Controllers\Api\V1\LeaveRequestController;
 use App\Http\Controllers\Api\V1\OvertimeRequestController;
 use App\Http\Controllers\Api\V1\OvertimeSessionController;
 use App\Http\Controllers\Api\V1\RecapController;
+use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\WorkLocationController;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +53,7 @@ Route::prefix('v1')->group(function () {
 
         // Monthly recap (approved leave + completed overtime)
         Route::middleware('role:super-admin,hrd,direktur')->group(function () {
+            Route::get('recap/attendance', [RecapController::class, 'attendance']);
             Route::get('recap/leave', [RecapController::class, 'leave']);
             Route::get('recap/overtime', [RecapController::class, 'overtime']);
         });
@@ -66,6 +69,23 @@ Route::prefix('v1')->group(function () {
         Route::get('users', [UserController::class, 'index'])
             ->middleware('role:super-admin,hrd,direktur,admin-bagian');
         Route::get('users/{user}', [UserController::class, 'show'])
+            ->middleware('role:super-admin,hrd,direktur,admin-bagian');
+
+        // Employee CRUD (create / update / deactivate) — Super Admin & HRD only.
+        Route::middleware('role:super-admin,hrd')->group(function () {
+            Route::post('users', [UserController::class, 'store']);
+            Route::put('users/{user}', [UserController::class, 'update']);
+            Route::delete('users/{user}', [UserController::class, 'destroy']);
+        });
+
+        // Employee off periods (dirumahkan / dinonaktifkan sementara) — HRD/admin only.
+        Route::middleware('role:super-admin,hrd,direktur')->group(function () {
+            Route::post('users/{user}/off-periods', [EmployeeOffPeriodController::class, 'store']);
+            Route::patch('off-periods/{offPeriod}', [EmployeeOffPeriodController::class, 'update']);
+            Route::delete('off-periods/{offPeriod}', [EmployeeOffPeriodController::class, 'destroy']);
+        });
+
+        Route::get('roles', [RoleController::class, 'index'])
             ->middleware('role:super-admin,hrd,direktur,admin-bagian');
         Route::get('departments', [DepartmentController::class, 'index']);
         Route::get('work-locations', [WorkLocationController::class, 'index']);

@@ -31,4 +31,31 @@ export interface User {
   role_id: number | null
   department?: Department | null
   role?: Role | null
+
+  // Extended employee profile (mirrored from the old HRD master data)
+  no_ktp?: string | null
+  alamat?: string | null
+  telepon_rumah?: string | null
+  tempat_lahir?: string | null
+  tanggal_lahir?: string | null
+  jenis_kelamin?: string | null
+  status_pernikahan?: string | null
+  jumlah_tanggungan?: number | null
+  agama?: string | null
+  pendidikan?: string | null
+  jurusan?: string | null
+  status_pajak?: string | null
+  no_npwp?: string | null
+  no_jamsostek?: string | null
+  rekening_bca?: string | null
+  rekening_bni?: string | null
+  status_karir?: string | null
+  tanggal_spk?: string | null
+  kartu_pensiun?: string | null
+  kode_jabatan?: string | null
+  nama_jabatan?: string | null
+  keterangan_data?: string | null
+  jatah_cuti?: string | number | null
+  tahun_cuti?: number | null
+  sisa_cuti?: string | number | null
 }

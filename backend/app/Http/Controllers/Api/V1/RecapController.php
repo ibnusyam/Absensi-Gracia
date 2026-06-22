@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\LeaveRequestResource;
 use App\Models\LeaveRequest;
 use App\Models\OvertimeSession;
+use App\Services\AttendanceService;
 use App\Services\OvertimeService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +26,66 @@ class RecapController extends Controller
 
     public function __construct(
         private readonly OvertimeService $overtimeService,
+        private readonly AttendanceService $attendanceService,
     ) {
+    }
+
+    /**
+     * Attendance grid over a free date range: per-employee daily status codes
+     * plus totals. Used by the HRD "Rekap Absensi" menu.
+     */
+    public function attendance(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+        ]);
+
+        $tz = config('services.display_timezone');
+        $start = Carbon::parse($validated['start_date'], $tz)->startOfDay();
+        $end = Carbon::parse($validated['end_date'], $tz)->startOfDay();
+
+        if ($start->diffInDays($end) > 92) {
+            return $this->respondError('Rentang tanggal maksimal 92 hari.', 422);
+        }
+
+        $matrix = $this->attendanceService->attendanceMatrix(
+            $start->toDateString(),
+            $end->toDateString(),
+            $validated['department_id'] ?? null,
+        );
+
+        $rows = array_map(fn (array $row) => [
+            'user' => [
+                'id' => $row['user']->id,
+                'name' => $row['user']->name,
+                'employee_id' => $row['user']->employee_id,
+                'department_name' => $row['user']->department?->name,
+            ],
+            'cells' => $row['cells'],
+            'totals' => $row['totals'],
+        ], $matrix['rows']);
+
+        return $this->respondSuccess([
+            'period' => [
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
+            ],
+            'dates' => $matrix['dates'],
+            'legend' => [
+                'present' => 'Hadir',
+                'late' => 'Terlambat',
+                'leave_annual' => 'Cuti Tahunan',
+                'leave_sick' => 'Sakit',
+                'leave_emergency' => 'Izin',
+                'absent' => 'Alpha',
+                'holiday' => 'Libur',
+                'none' => '-',
+            ],
+            'summary' => $matrix['summary'],
+            'rows' => $rows,
+        ], 'OK');
     }
 
     /** Approved leave overlapping the selected month. */

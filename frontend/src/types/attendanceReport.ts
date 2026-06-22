@@ -15,6 +15,7 @@ export interface AttendanceReportSummary {
   permit: number
   absent: number
   holiday: number
+  off: number
 }
 
 export interface AttendanceReport {

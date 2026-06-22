@@ -1,5 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { recapApi, type RecapFilters } from '@/api/recap.api'
+import { recapApi, type RecapFilters, type AttendanceRecapFilters } from '@/api/recap.api'
+
+export function useAttendanceRecap(filters: AttendanceRecapFilters) {
+  return useQuery({
+    queryKey: ['recap', 'attendance', filters],
+    queryFn: () => recapApi.attendance(filters),
+    enabled: Boolean(filters.start_date && filters.end_date),
+  })
+}
 
 export function useLeaveRecap(filters: RecapFilters) {
   return useQuery({

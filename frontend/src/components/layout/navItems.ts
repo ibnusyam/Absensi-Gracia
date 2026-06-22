@@ -7,6 +7,7 @@ import {
   CheckSquare,
   Inbox,
   BarChart3,
+  CalendarRange,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -61,7 +62,13 @@ export const navGroups: NavGroup[] = [
         roles: ['super-admin', 'hrd', 'direktur'],
       },
       {
-        label: 'Rekap',
+        label: 'Rekap Absensi',
+        path: routePaths.attendanceRecap,
+        icon: CalendarRange,
+        roles: ['super-admin', 'hrd', 'direktur'],
+      },
+      {
+        label: 'Rekap Cuti & Lembur',
         path: routePaths.recap,
         icon: BarChart3,
         roles: ['super-admin', 'hrd', 'direktur'],

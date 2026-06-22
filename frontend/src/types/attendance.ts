@@ -1,6 +1,6 @@
 import type { User } from './user'
 
-export type AttendanceStatus = 'present' | 'late' | 'absent' | 'permit' | 'holiday'
+export type AttendanceStatus = 'present' | 'late' | 'absent' | 'permit' | 'holiday' | 'off'
 
 export interface WorkLocation {
   id: number

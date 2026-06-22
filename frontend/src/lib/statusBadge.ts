@@ -12,6 +12,7 @@ export function attendanceBadgeVariant(status: string): Variant {
       return 'destructive'
     case 'permit':
     case 'holiday':
+    case 'off':
       return 'muted'
     default:
       return 'default'

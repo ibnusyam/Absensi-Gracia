@@ -40,7 +40,53 @@ export interface RecapOvertimeResponse {
   data: RecapOvertimeRow[]
 }
 
+export interface AttendanceRecapFilters {
+  start_date: string
+  end_date: string
+  department_id?: number
+}
+
+/** Granular per-day status code for a single cell of the attendance grid. */
+export type AttendanceCell =
+  | 'present'
+  | 'late'
+  | 'leave_annual'
+  | 'leave_sick'
+  | 'leave_emergency'
+  | 'absent'
+  | 'holiday'
+  | 'off'
+  | 'none'
+
+export interface AttendanceRecapRow {
+  user: {
+    id: number
+    name: string
+    employee_id: string | null
+    department_name: string | null
+  }
+  /** Status codes aligned positionally with the response `dates` array. */
+  cells: AttendanceCell[]
+  /** Count per status code, e.g. { present: 18, absent: 2, ... }. */
+  totals: Record<string, number>
+}
+
+export interface AttendanceRecapResponse {
+  period: { start_date: string; end_date: string }
+  dates: string[]
+  legend: Record<AttendanceCell, string>
+  summary: { total_employees: number; total_days: number }
+  rows: AttendanceRecapRow[]
+}
+
 export const recapApi = {
+  async attendance(filters: AttendanceRecapFilters): Promise<AttendanceRecapResponse> {
+    const { data } = await apiClient.get<ApiResponse<AttendanceRecapResponse>>('/recap/attendance', {
+      params: filters,
+    })
+    return data.data
+  },
+
   async leave(filters: RecapFilters): Promise<RecapLeaveResponse> {
     const { data } = await apiClient.get<ApiResponse<RecapLeaveResponse>>('/recap/leave', {
       params: filters,

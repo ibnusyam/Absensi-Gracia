@@ -9,6 +9,7 @@ enum AttendanceStatus: string
     case Absent = 'absent';
     case Permit = 'permit';
     case Holiday = 'holiday';
+    case Off = 'off';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum AttendanceStatus: string
             self::Absent => 'Alpha',
             self::Permit => 'Izin',
             self::Holiday => 'Libur',
+            self::Off => 'Off',
         };
     }
 }

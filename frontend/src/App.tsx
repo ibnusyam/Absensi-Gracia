@@ -19,12 +19,16 @@ import { RequestsPage } from '@/features/requests/pages/RequestsPage'
 import { MobileRequestsPage } from '@/features/requests/pages/MobileRequestsPage'
 import { RecapPage } from '@/features/recap/pages/RecapPage'
 import { MobileRecapPage } from '@/features/recap/pages/MobileRecapPage'
+import { AttendanceRecapPage } from '@/features/recap/pages/AttendanceRecapPage'
+import { MobileAttendanceRecapPage } from '@/features/recap/pages/MobileAttendanceRecapPage'
 import { ApprovalPage } from '@/features/approval/pages/ApprovalPage'
 import { MobileApprovalPage } from '@/features/approval/pages/MobileApprovalPage'
 import { UsersPage } from '@/features/users/pages/UsersPage'
 import { MobileUsersPage } from '@/features/users/pages/MobileUsersPage'
 import { UserDetailPage } from '@/features/users/pages/UserDetailPage'
 import { MobileUserDetailPage } from '@/features/users/pages/MobileUserDetailPage'
+import { UserFormPage } from '@/features/users/pages/UserFormPage'
+import { MobileUserFormPage } from '@/features/users/pages/MobileUserFormPage'
 
 function App() {
   const isMobile = useIsMobile()
@@ -60,6 +64,17 @@ function App() {
             path={routePaths.users}
             element={isMobile ? <MobileUsersPage /> : <UsersPage />}
           />
+          {/* Create / edit employee — managers only */}
+          <Route element={<ProtectedRoute roles={['super-admin', 'hrd']} />}>
+            <Route
+              path={routePaths.userNew}
+              element={isMobile ? <MobileUserFormPage mode="create" /> : <UserFormPage mode="create" />}
+            />
+            <Route
+              path={routePaths.userEdit}
+              element={isMobile ? <MobileUserFormPage mode="edit" /> : <UserFormPage mode="edit" />}
+            />
+          </Route>
           <Route
             path={routePaths.userDetail}
             element={isMobile ? <MobileUserDetailPage /> : <UserDetailPage />}
@@ -70,6 +85,10 @@ function App() {
             <Route
               path={routePaths.requests}
               element={isMobile ? <MobileRequestsPage /> : <RequestsPage />}
+            />
+            <Route
+              path={routePaths.attendanceRecap}
+              element={isMobile ? <MobileAttendanceRecapPage /> : <AttendanceRecapPage />}
             />
             <Route
               path={routePaths.recap}

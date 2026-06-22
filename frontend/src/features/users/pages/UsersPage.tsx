@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, UserPlus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -9,10 +9,12 @@ import { Select } from '@/components/ui/select'
 import { useNavigate } from 'react-router-dom'
 import { PageLoader } from '@/components/ui/spinner'
 import { useUsers, useDepartments } from '@/features/users/hooks/useUsers'
-import { userDetailPath } from '@/routes/routePaths'
+import { useHasRole } from '@/features/auth/hooks/useAuth'
+import { routePaths, userDetailPath } from '@/routes/routePaths'
 
 export function UsersPage() {
   const navigate = useNavigate()
+  const canManage = useHasRole('super-admin', 'hrd')
   const [search, setSearch] = useState('')
   const [departmentId, setDepartmentId] = useState<string>('')
   const [page, setPage] = useState(1)
@@ -29,7 +31,17 @@ export function UsersPage() {
 
   return (
     <div>
-      <PageHeader title="Karyawan" description="Daftar karyawan perusahaan." />
+      <PageHeader
+        title="Karyawan"
+        description="Daftar karyawan perusahaan."
+        action={
+          canManage && (
+            <Button onClick={() => navigate(routePaths.userNew)}>
+              <UserPlus className="h-4 w-4" /> Tambah Karyawan
+            </Button>
+          )
+        }
+      />
 
       <Card className="mb-4">
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row">
