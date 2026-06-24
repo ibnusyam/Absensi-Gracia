@@ -3,13 +3,13 @@ import type { ApiResponse } from '@/types/api'
 import type { LeaveRequest } from '@/types/leave'
 
 export interface RecapFilters {
-  month: number
-  year: number
+  start_date: string
+  end_date: string
   department_id?: number
 }
 
 export interface RecapLeaveResponse {
-  period: { month: number; year: number }
+  period: { start_date: string; end_date: string }
   summary: {
     total_requests: number
     total_people: number
@@ -18,19 +18,35 @@ export interface RecapLeaveResponse {
   data: LeaveRequest[]
 }
 
-export interface RecapOvertimeRow {
+/** A single completed overtime session, shown when an employee row is expanded. */
+export interface RecapOvertimeSession {
   session_id: number
   overtime_date: string
   is_holiday: boolean
-  employee_name: string | null
-  department_name: string | null
   total_hours: number
-  /** Hours keyed by pay multiplier, e.g. { "1.5": 1, "2": 1.5, "3": 0 }. */
+  /** Hours keyed by pay multiplier, e.g. { "1.5": 1, "2": 1.5 }. */
   tiers: Record<string, number>
 }
 
+/** Overtime accumulated per employee across the selected date range. */
+export interface RecapOvertimeRow {
+  user_id: number | null
+  employee_name: string | null
+  department_name: string | null
+  /** Hours summed across all of this employee's sessions in the range. */
+  total_hours: number
+  /** Number of completed overtime sessions. */
+  session_count: number
+  /** Number of distinct overtime dates. */
+  day_count: number
+  /** Tiered hours summed across all sessions, keyed by pay multiplier. */
+  tiers: Record<string, number>
+  /** The individual sessions making up the totals (sorted by date). */
+  sessions: RecapOvertimeSession[]
+}
+
 export interface RecapOvertimeResponse {
-  period: { month: number; year: number }
+  period: { start_date: string; end_date: string }
   summary: {
     total_sessions: number
     total_employees: number

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Clock, Download, Plane } from 'lucide-react'
+import { Fragment, useState } from 'react'
+import { ChevronDown, ChevronRight, Clock, Download, Plane } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -11,13 +11,32 @@ import { PageLoader } from '@/components/ui/spinner'
 import { useDepartments } from '@/features/users/hooks/useUsers'
 import { useLeaveRecap, useOvertimeRecap } from '@/features/recap/hooks/useRecap'
 import { exportToXlsx } from '@/lib/exportExcel'
-import { formatDate, monthBounds, currentMonthValue, formatMonthLabel, cn } from '@/lib/utils'
+import { formatDate, cn } from '@/lib/utils'
 
 type Tab = 'leave' | 'overtime'
 
 /** "1.5" -> "1,5×" */
 function multiplierLabel(key: string): string {
   return `${key.replace('.', ',')}×`
+}
+
+/** Hours for a tier cell: localized number, or "–" when there are none. */
+function tierCell(hours: number | undefined): string {
+  if (!hours) return '–'
+  return String(hours).replace('.', ',')
+}
+
+/** Local "YYYY-MM-DD" for a Date (avoids the UTC shift of toISOString). */
+function isoLocal(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function firstOfMonth(): string {
+  const now = new Date()
+  return isoLocal(new Date(now.getFullYear(), now.getMonth(), 1))
 }
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
@@ -33,13 +52,24 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 
 export function RecapPage() {
   const [tab, setTab] = useState<Tab>('leave')
-  const [month, setMonth] = useState(currentMonthValue())
+  const [startDate, setStartDate] = useState(firstOfMonth)
+  const [endDate, setEndDate] = useState(() => isoLocal(new Date()))
   const [departmentId, setDepartmentId] = useState('')
+  // Which employee rows are expanded to show their per-session breakdown.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  const toggleRow = (key: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
 
   const departments = useDepartments()
-  const { month: m, year: y } = monthBounds(month)
   const deptId = departmentId ? Number(departmentId) : undefined
-  const filters = { month: m, year: y, department_id: deptId }
+  const rangeInvalid = Boolean(startDate && endDate && endDate < startDate)
+  const filters = { start_date: startDate, end_date: endDate, department_id: deptId }
 
   const leave = useLeaveRecap(filters)
   const overtime = useOvertimeRecap(filters)
@@ -47,6 +77,8 @@ export function RecapPage() {
   const tierEntries = Object.entries(overtime.data?.summary.hours_by_multiplier ?? {}).sort(
     (a, b) => Number(a[0]) - Number(b[0]),
   )
+  // Sorted multiplier keys (e.g. ["1.5","2","3"]) used as fixed tier columns.
+  const tierKeys = tierEntries.map(([k]) => k)
 
   const handleExport = () => {
     if (tab === 'leave') {
@@ -58,19 +90,21 @@ export function RecapPage() {
         Selesai: formatDate(l.end_date),
         Hari: l.total_days,
       }))
-      exportToXlsx(`rekap-cuti-${y}-${String(m).padStart(2, '0')}`, 'Rekap Cuti', rows)
+      exportToXlsx(`rekap-cuti-${startDate}_${endDate}`, 'Rekap Cuti', rows)
     } else {
+      // One accumulated row per employee. Fixed tier columns (sorted) so every
+      // row lines up under the same headers.
       const rows = (overtime.data?.data ?? []).map((r) => ({
-        Tanggal: formatDate(r.overtime_date),
         Karyawan: r.employee_name ?? '-',
         Departemen: r.department_name ?? '-',
-        Hari: r.is_holiday ? 'Libur' : 'Kerja',
+        'Jumlah Hari': r.day_count,
+        'Jumlah Sesi': r.session_count,
         'Total Jam': r.total_hours,
         ...Object.fromEntries(
-          Object.entries(r.tiers).map(([k, v]) => [`Jam ${multiplierLabel(k)}`, v]),
+          tierKeys.map((k) => [`Jam ${multiplierLabel(k)}`, r.tiers[k] ?? 0]),
         ),
       }))
-      exportToXlsx(`rekap-lembur-${y}-${String(m).padStart(2, '0')}`, 'Rekap Lembur', rows)
+      exportToXlsx(`rekap-lembur-${startDate}_${endDate}`, 'Rekap Lembur', rows)
     }
   }
 
@@ -83,7 +117,7 @@ export function RecapPage() {
     <div>
       <PageHeader
         title="Rekap"
-        description={`Cuti yang disetujui & lembur yang selesai — ${formatMonthLabel(month)}.`}
+        description={`Cuti yang disetujui & lembur yang selesai — ${formatDate(startDate)} – ${formatDate(endDate)}.`}
         action={
           <Button variant="outline" onClick={handleExport} disabled={exportDisabled}>
             <Download className="h-4 w-4" /> Export Excel
@@ -123,12 +157,24 @@ export function RecapPage() {
       <Card className="mb-4">
         <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
           <div className="space-y-1">
-            <Label htmlFor="month">Bulan</Label>
+            <Label htmlFor="start">Dari tanggal</Label>
             <Input
-              id="month"
-              type="month"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
+              id="start"
+              type="date"
+              value={startDate}
+              max={endDate || undefined}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="sm:w-44"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="end">Sampai tanggal</Label>
+            <Input
+              id="end"
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
               className="sm:w-44"
             />
           </div>
@@ -146,7 +192,13 @@ export function RecapPage() {
         </CardContent>
       </Card>
 
-      {tab === 'leave' ? (
+      {rangeInvalid ? (
+        <Card>
+          <CardContent className="p-6 text-center text-sm text-red-600">
+            "Sampai tanggal" tidak boleh sebelum "Dari tanggal".
+          </CardContent>
+        </Card>
+      ) : tab === 'leave' ? (
         leave.isLoading ? (
           <PageLoader />
         ) : (
@@ -184,7 +236,7 @@ export function RecapPage() {
                       {leave.data?.data.length === 0 && (
                         <tr>
                           <td colSpan={5} className="px-4 py-6 text-center text-muted-foreground">
-                            Tidak ada cuti disetujui pada bulan ini.
+                            Tidak ada cuti disetujui pada periode ini.
                           </td>
                         </tr>
                       )}
@@ -225,37 +277,95 @@ export function RecapPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="px-4 py-3 font-medium">Tanggal</th>
                       <th className="px-4 py-3 font-medium">Karyawan</th>
                       <th className="px-4 py-3 font-medium">Departemen</th>
-                      <th className="px-4 py-3 font-medium">Hari</th>
-                      <th className="px-4 py-3 font-medium">Total Jam</th>
-                      <th className="px-4 py-3 font-medium">Rincian</th>
+                      <th className="px-4 py-3 text-center font-medium">Hari</th>
+                      <th className="px-4 py-3 text-center font-medium">Sesi</th>
+                      {tierKeys.map((k) => (
+                        <th key={k} className="px-4 py-3 text-center font-medium">
+                          {multiplierLabel(k)}
+                        </th>
+                      ))}
+                      <th className="px-4 py-3 text-center font-medium">Total Jam</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {overtime.data?.data.map((r) => (
-                      <tr key={r.session_id} className="border-b last:border-0">
-                        <td className="px-4 py-3">{formatDate(r.overtime_date)}</td>
-                        <td className="px-4 py-3 font-medium text-slate-800">{r.employee_name ?? '-'}</td>
-                        <td className="px-4 py-3">{r.department_name ?? '-'}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant={r.is_holiday ? 'warning' : 'muted'}>
-                            {r.is_holiday ? 'Libur' : 'Kerja'}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">{r.total_hours} jam</td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {Object.entries(r.tiers)
-                            .map(([k, v]) => `${v}j ${multiplierLabel(k)}`)
-                            .join(' + ') || '-'}
-                        </td>
-                      </tr>
-                    ))}
+                    {overtime.data?.data.map((r, idx) => {
+                      const key = String(r.user_id ?? r.employee_name ?? idx)
+                      const isOpen = expanded.has(key)
+                      return (
+                        <Fragment key={key}>
+                          <tr
+                            className="cursor-pointer border-b last:border-0 hover:bg-slate-50"
+                            onClick={() => toggleRow(key)}
+                          >
+                            <td className="px-4 py-3 font-medium text-slate-800">
+                              <span className="flex items-center gap-1.5">
+                                {isOpen ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                {r.employee_name ?? '-'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{r.department_name ?? '-'}</td>
+                            <td className="px-4 py-3 text-center tabular-nums">{r.day_count}</td>
+                            <td className="px-4 py-3 text-center tabular-nums">{r.session_count}</td>
+                            {tierKeys.map((k) => (
+                              <td key={k} className="px-4 py-3 text-center tabular-nums">
+                                {tierCell(r.tiers[k])}
+                              </td>
+                            ))}
+                            <td className="px-4 py-3 text-center font-semibold tabular-nums text-slate-800">
+                              {r.total_hours}
+                            </td>
+                          </tr>
+                          {isOpen && (
+                            <tr className="border-b last:border-0 bg-slate-50/60">
+                              <td colSpan={5 + tierKeys.length} className="px-4 py-2">
+                                <table className="w-full text-xs">
+                                  <thead>
+                                    <tr className="text-left text-muted-foreground">
+                                      <th className="py-1.5 pr-4 font-medium">Tanggal</th>
+                                      <th className="py-1.5 pr-4 font-medium">Hari</th>
+                                      {tierKeys.map((k) => (
+                                        <th key={k} className="py-1.5 pr-4 text-center font-medium">
+                                          {multiplierLabel(k)}
+                                        </th>
+                                      ))}
+                                      <th className="py-1.5 text-center font-medium">Jam</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {r.sessions.map((s) => (
+                                      <tr key={s.session_id} className="border-t border-slate-200/70">
+                                        <td className="py-1.5 pr-4">{formatDate(s.overtime_date)}</td>
+                                        <td className="py-1.5 pr-4">
+                                          <Badge variant={s.is_holiday ? 'warning' : 'muted'}>
+                                            {s.is_holiday ? 'Libur' : 'Kerja'}
+                                          </Badge>
+                                        </td>
+                                        {tierKeys.map((k) => (
+                                          <td key={k} className="py-1.5 pr-4 text-center tabular-nums">
+                                            {tierCell(s.tiers[k])}
+                                          </td>
+                                        ))}
+                                        <td className="py-1.5 text-center tabular-nums">{s.total_hours}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      )
+                    })}
                     {overtime.data?.data.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-muted-foreground">
-                          Tidak ada lembur selesai pada bulan ini.
+                        <td colSpan={5 + tierKeys.length} className="px-4 py-6 text-center text-muted-foreground">
+                          Tidak ada lembur selesai pada periode ini.
                         </td>
                       </tr>
                     )}

@@ -17,6 +17,8 @@ import { OvertimePage } from '@/features/overtime/pages/OvertimePage'
 import { MobileOvertimePage } from '@/features/overtime/pages/MobileOvertimePage'
 import { RequestsPage } from '@/features/requests/pages/RequestsPage'
 import { MobileRequestsPage } from '@/features/requests/pages/MobileRequestsPage'
+import { RequestDetailPage } from '@/features/requests/pages/RequestDetailPage'
+import { MobileRequestDetailPage } from '@/features/requests/pages/MobileRequestDetailPage'
 import { RecapPage } from '@/features/recap/pages/RecapPage'
 import { MobileRecapPage } from '@/features/recap/pages/MobileRecapPage'
 import { AttendanceRecapPage } from '@/features/recap/pages/AttendanceRecapPage'
@@ -85,6 +87,22 @@ function App() {
             <Route
               path={routePaths.requests}
               element={isMobile ? <MobileRequestsPage /> : <RequestsPage />}
+            />
+            <Route
+              path={routePaths.requestLeaveDetail}
+              element={
+                isMobile ? <MobileRequestDetailPage kind="leave" /> : <RequestDetailPage kind="leave" />
+              }
+            />
+            <Route
+              path={routePaths.requestOvertimeDetail}
+              element={
+                isMobile ? (
+                  <MobileRequestDetailPage kind="overtime" />
+                ) : (
+                  <RequestDetailPage kind="overtime" />
+                )
+              }
             />
             <Route
               path={routePaths.attendanceRecap}

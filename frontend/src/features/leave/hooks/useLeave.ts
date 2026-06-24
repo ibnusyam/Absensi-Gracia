@@ -10,6 +10,14 @@ export function useLeaveList(filters: LeaveFilters = {}) {
   })
 }
 
+export function useLeaveDetail(id: number) {
+  return useQuery({
+    queryKey: ['leave', 'detail', id],
+    queryFn: () => leaveApi.show(id),
+    enabled: Number.isFinite(id) && id > 0,
+  })
+}
+
 export function useLeaveQuota() {
   return useQuery({
     queryKey: ['leave', 'quota'],

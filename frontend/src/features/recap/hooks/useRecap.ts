@@ -13,6 +13,7 @@ export function useLeaveRecap(filters: RecapFilters) {
   return useQuery({
     queryKey: ['recap', 'leave', filters],
     queryFn: () => recapApi.leave(filters),
+    enabled: Boolean(filters.start_date && filters.end_date),
   })
 }
 
@@ -20,5 +21,6 @@ export function useOvertimeRecap(filters: RecapFilters) {
   return useQuery({
     queryKey: ['recap', 'overtime', filters],
     queryFn: () => recapApi.overtime(filters),
+    enabled: Boolean(filters.start_date && filters.end_date),
   })
 }

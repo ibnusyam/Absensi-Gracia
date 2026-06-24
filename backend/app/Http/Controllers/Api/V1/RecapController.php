@@ -88,15 +88,15 @@ class RecapController extends Controller
         ], 'OK');
     }
 
-    /** Approved leave overlapping the selected month. */
+    /** Approved leave overlapping the selected date range. */
     public function leave(Request $request): JsonResponse
     {
-        [$start, $end] = $this->monthRange($request);
+        [$start, $end] = $this->dateRange($request);
         $departmentId = $request->integer('department_id');
 
         $leaves = LeaveRequest::with('user.department')
             ->where('status', LeaveStatus::Approved)
-            // Overlaps the month: starts on/before month end AND ends on/after month start.
+            // Overlaps the range: starts on/before range end AND ends on/after range start.
             ->whereDate('start_date', '<=', $end->toDateString())
             ->whereDate('end_date', '>=', $start->toDateString())
             ->when($departmentId, fn ($q) => $q->whereHas(
@@ -107,7 +107,7 @@ class RecapController extends Controller
             ->get();
 
         return $this->respondSuccess([
-            'period' => ['month' => (int) $start->month, 'year' => (int) $start->year],
+            'period' => ['start_date' => $start->toDateString(), 'end_date' => $end->toDateString()],
             'summary' => [
                 'total_requests' => $leaves->count(),
                 'total_people' => $leaves->pluck('user_id')->unique()->count(),
@@ -117,10 +117,14 @@ class RecapController extends Controller
         ], 'OK');
     }
 
-    /** Completed overtime sessions for the selected month, with tiered hour totals. */
+    /**
+     * Completed overtime over the selected date range, accumulated PER EMPLOYEE:
+     * each employee's hours (and tiered breakdown) are summed across every session
+     * in the range, with the individual sessions kept under `sessions` for drill-down.
+     */
     public function overtime(Request $request): JsonResponse
     {
-        [$start, $end] = $this->monthRange($request);
+        [$start, $end] = $this->dateRange($request);
         $departmentId = $request->integer('department_id');
 
         $sessions = OvertimeSession::query()
@@ -136,39 +140,74 @@ class RecapController extends Controller
 
         $hoursByMultiplier = [];
         $totalHours = 0.0;
-        $rows = [];
+        $totalSessions = 0;
+        /** @var array<int|string, array<string, mixed>> $employees keyed by user_id */
+        $employees = [];
 
         foreach ($sessions as $session) {
             $req = $session->requestEmployee->overtimeRequest;
             $isHoliday = $this->overtimeService->isHoliday($req->overtime_date);
             $hours = (float) $session->total_hours;
             $tiers = $this->overtimeService->tierHours($hours, $isHoliday);
+            $date = $req->overtime_date->toDateString();
 
             foreach ($tiers as $multiplier => $tierHours) {
                 $hoursByMultiplier[$multiplier] = round(($hoursByMultiplier[$multiplier] ?? 0) + $tierHours, 2);
             }
-
             $totalHours += $hours;
+            $totalSessions++;
 
-            $rows[] = [
+            // Key by user_id; fall back to name for the (unexpected) null-user case.
+            $userId = $session->requestEmployee->user_id;
+            $key = $userId ?? 'name:'.($session->requestEmployee->user?->name ?? $session->id);
+
+            if (! isset($employees[$key])) {
+                $employees[$key] = [
+                    'user_id' => $userId,
+                    'employee_name' => $session->requestEmployee->user?->name,
+                    'department_name' => $req->department?->name,
+                    'total_hours' => 0.0,
+                    'session_count' => 0,
+                    'tiers' => [],
+                    'dates' => [],
+                    'sessions' => [],
+                ];
+            }
+
+            $employees[$key]['total_hours'] = round($employees[$key]['total_hours'] + $hours, 2);
+            $employees[$key]['session_count']++;
+            $employees[$key]['dates'][$date] = true;
+            foreach ($tiers as $multiplier => $tierHours) {
+                $employees[$key]['tiers'][$multiplier] = round(($employees[$key]['tiers'][$multiplier] ?? 0) + $tierHours, 2);
+            }
+            $employees[$key]['sessions'][] = [
                 'session_id' => $session->id,
-                'overtime_date' => $req->overtime_date->toDateString(),
+                'overtime_date' => $date,
                 'is_holiday' => $isHoliday,
-                'employee_name' => $session->requestEmployee->user?->name,
-                'department_name' => $req->department?->name,
                 'total_hours' => $hours,
                 'tiers' => $tiers,
             ];
         }
 
-        // Sort tier keys numerically (1.5, 2, 3) for stable display.
+        // Finalise each employee row: count distinct days, sort tiers & sessions.
+        $rows = [];
+        foreach ($employees as $emp) {
+            uksort($emp['tiers'], fn ($a, $b) => (float) $a <=> (float) $b);
+            usort($emp['sessions'], fn ($a, $b) => strcmp($a['overtime_date'], $b['overtime_date']));
+            $emp['day_count'] = count($emp['dates']);
+            unset($emp['dates']);
+            $rows[] = $emp;
+        }
+
+        // Stable display: employees A→Z, tier keys numerically (1.5, 2, 3).
+        usort($rows, fn ($a, $b) => strcmp((string) $a['employee_name'], (string) $b['employee_name']));
         uksort($hoursByMultiplier, fn ($a, $b) => (float) $a <=> (float) $b);
 
         return $this->respondSuccess([
-            'period' => ['month' => (int) $start->month, 'year' => (int) $start->year],
+            'period' => ['start_date' => $start->toDateString(), 'end_date' => $end->toDateString()],
             'summary' => [
-                'total_sessions' => count($rows),
-                'total_employees' => collect($rows)->pluck('employee_name')->unique()->count(),
+                'total_sessions' => $totalSessions,
+                'total_employees' => count($rows),
                 'total_hours' => round($totalHours, 2),
                 'hours_by_multiplier' => $hoursByMultiplier,
             ],
@@ -177,22 +216,29 @@ class RecapController extends Controller
     }
 
     /**
-     * Resolve the [start, end] Carbon boundaries of the requested month, defaulting
-     * to the current month in the display timezone.
+     * Resolve the [start, end] Carbon boundaries of the requested free date range,
+     * defaulting to the current month in the display timezone when omitted.
      *
      * @return array{0: Carbon, 1: Carbon}
      */
-    private function monthRange(Request $request): array
+    private function dateRange(Request $request): array
     {
         $tz = config('services.display_timezone');
         $now = now()->setTimezone($tz);
 
-        $month = (int) $request->integer('month', $now->month);
-        $year = (int) $request->integer('year', $now->year);
-        $month = max(1, min(12, $month));
+        $request->validate([
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+        ]);
 
-        $start = Carbon::create($year, $month, 1, 0, 0, 0, $tz)->startOfMonth();
-        $end = $start->copy()->endOfMonth();
+        $start = $request->filled('start_date')
+            ? Carbon::parse($request->string('start_date'), $tz)->startOfDay()
+            : $now->copy()->startOfMonth();
+
+        $end = $request->filled('end_date')
+            ? Carbon::parse($request->string('end_date'), $tz)->startOfDay()
+            : $now->copy()->endOfMonth();
 
         return [$start, $end];
     }

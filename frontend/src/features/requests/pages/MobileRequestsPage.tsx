@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Clock, Plane } from 'lucide-react'
 import { MobileHeader } from '@/components/mobile/MobileHeader'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +8,7 @@ import { useLeaveList } from '@/features/leave/hooks/useLeave'
 import { useOvertimeList } from '@/features/overtime/hooks/useOvertime'
 import { Input } from '@/components/ui/input'
 import { requestStatusVariant } from '@/lib/statusBadge'
+import { requestLeaveDetailPath, requestOvertimeDetailPath } from '@/routes/routePaths'
 import { formatDate, formatTime, monthBounds, currentMonthValue, cn } from '@/lib/utils'
 
 type Tab = 'leave' | 'overtime'
@@ -16,8 +18,9 @@ export function MobileRequestsPage() {
   const [month, setMonth] = useState(currentMonthValue())
   const { from, to } = monthBounds(month)
 
-  const leave = useLeaveList({ scope: 'all', in_process: true, per_page: 50, date_from: from, date_to: to })
-  const overtime = useOvertimeList({ scope: 'all', in_process: true, per_page: 50, date_from: from, date_to: to })
+  const navigate = useNavigate()
+  const leave = useLeaveList({ scope: 'all', per_page: 50, date_from: from, date_to: to })
+  const overtime = useOvertimeList({ scope: 'all', per_page: 50, date_from: from, date_to: to })
 
   const loading = tab === 'leave' ? leave.isLoading : overtime.isLoading
 
@@ -63,7 +66,11 @@ export function MobileRequestsPage() {
             <p className="py-8 text-center text-sm text-slate-400">Tidak ada pengajuan cuti.</p>
           ) : (
             leave.data?.data.map((l) => (
-              <div key={l.id} className="rounded-2xl bg-white p-4 shadow-sm">
+              <div
+                key={l.id}
+                onClick={() => navigate(requestLeaveDetailPath(l.id))}
+                className="cursor-pointer rounded-2xl bg-white p-4 shadow-sm active:bg-slate-50"
+              >
                 <div className="mb-1 flex items-center justify-between">
                   <span className="font-semibold text-slate-800">{l.user?.name ?? `#${l.user_id}`}</span>
                   <Badge variant={requestStatusVariant(l.status)}>{l.status_label}</Badge>
@@ -79,7 +86,11 @@ export function MobileRequestsPage() {
           <p className="py-8 text-center text-sm text-slate-400">Tidak ada pengajuan lembur.</p>
         ) : (
           overtime.data?.data.map((o) => (
-            <div key={o.id} className="rounded-2xl bg-white p-4 shadow-sm">
+            <div
+              key={o.id}
+              onClick={() => navigate(requestOvertimeDetailPath(o.id))}
+              className="cursor-pointer rounded-2xl bg-white p-4 shadow-sm active:bg-slate-50"
+            >
               <div className="mb-1 flex items-center justify-between">
                 <span className="font-semibold text-slate-800">
                   {formatDate(o.overtime_date)}

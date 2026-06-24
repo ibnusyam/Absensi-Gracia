@@ -10,6 +10,14 @@ export function useOvertimeList(filters: OvertimeFilters = {}) {
   })
 }
 
+export function useOvertimeDetail(id: number) {
+  return useQuery({
+    queryKey: ['overtime', 'detail', id],
+    queryFn: () => overtimeApi.show(id),
+    enabled: Number.isFinite(id) && id > 0,
+  })
+}
+
 export function useCreateOvertime() {
   const qc = useQueryClient()
   return useMutation({

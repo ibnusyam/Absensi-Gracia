@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Clock, Download, Plane } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,21 +15,27 @@ import { useDepartments } from '@/features/users/hooks/useUsers'
 import { requestStatusVariant } from '@/lib/statusBadge'
 import { formatDate, formatTime, monthBounds, currentMonthValue, cn } from '@/lib/utils'
 import { exportToXlsx } from '@/lib/exportExcel'
+import { requestLeaveDetailPath, requestOvertimeDetailPath } from '@/routes/routePaths'
 import type { LeaveStatus } from '@/types/leave'
 import type { OvertimeStatus } from '@/types/overtime'
 
 type Tab = 'leave' | 'overtime'
 
-// Pengajuan only holds in-process items, so status options are limited to those.
+// The full record of every request (waiting, approved, rejected, cancelled).
 const leaveStatusOptions = [
-  { value: '', label: 'Semua (dalam proses)' },
+  { value: '', label: 'Semua status' },
   { value: 'pending', label: 'Menunggu' },
+  { value: 'approved', label: 'Disetujui' },
+  { value: 'rejected', label: 'Ditolak' },
+  { value: 'cancelled', label: 'Dibatalkan' },
 ]
 
 const overtimeStatusOptions = [
-  { value: '', label: 'Semua (dalam proses)' },
+  { value: '', label: 'Semua status' },
   { value: 'pending', label: 'Menunggu HRD' },
   { value: 'approved_by_hrd', label: 'Menunggu Direktur' },
+  { value: 'approved_by_director', label: 'Disetujui' },
+  { value: 'rejected', label: 'Ditolak' },
 ]
 
 export function RequestsPage() {
@@ -37,13 +44,13 @@ export function RequestsPage() {
   const [departmentId, setDepartmentId] = useState('')
   const [month, setMonth] = useState(currentMonthValue())
 
+  const navigate = useNavigate()
   const departments = useDepartments()
   const deptId = departmentId ? Number(departmentId) : undefined
   const { from, to } = monthBounds(month)
 
   const leave = useLeaveList({
     scope: 'all',
-    in_process: true,
     per_page: 50,
     date_from: from,
     date_to: to,
@@ -52,7 +59,6 @@ export function RequestsPage() {
   })
   const overtime = useOvertimeList({
     scope: 'all',
-    in_process: true,
     per_page: 50,
     date_from: from,
     date_to: to,
@@ -106,7 +112,7 @@ export function RequestsPage() {
     <div>
       <PageHeader
         title="Pengajuan Karyawan"
-        description="Pengajuan cuti & lembur yang masih dalam proses approval."
+        description="Semua pengajuan cuti & lembur — klik untuk lihat riwayat persetujuannya."
         action={
           <Button variant="outline" onClick={handleExport} disabled={exportDisabled}>
             <Download className="h-4 w-4" /> Export Excel
@@ -199,7 +205,11 @@ export function RequestsPage() {
                   </thead>
                   <tbody>
                     {leave.data?.data.map((l) => (
-                      <tr key={l.id} className="border-b last:border-0">
+                      <tr
+                        key={l.id}
+                        className="cursor-pointer border-b last:border-0 hover:bg-slate-50"
+                        onClick={() => navigate(requestLeaveDetailPath(l.id))}
+                      >
                         <td className="px-4 py-3 font-medium text-slate-800">{l.user?.name ?? `#${l.user_id}`}</td>
                         <td className="px-4 py-3">{l.user?.department?.name ?? '-'}</td>
                         <td className="px-4 py-3">{l.type_label}</td>
@@ -236,7 +246,11 @@ export function RequestsPage() {
       ) : (
         <div className="space-y-4">
           {overtime.data?.data.map((o) => (
-            <Card key={o.id}>
+            <Card
+              key={o.id}
+              className="cursor-pointer transition-colors hover:bg-slate-50"
+              onClick={() => navigate(requestOvertimeDetailPath(o.id))}
+            >
               <CardContent className="space-y-3 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-2 font-medium">
