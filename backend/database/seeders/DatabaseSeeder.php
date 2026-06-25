@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             OvertimeSeeder::class,
             LeaveSeeder::class,
             JenjangDemoSeeder::class,
+            OffPeriodSeeder::class,
         ]);
     }
 }

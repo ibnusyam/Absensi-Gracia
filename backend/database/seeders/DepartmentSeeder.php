@@ -9,7 +9,17 @@ class DepartmentSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['Teknologi Informasi', 'Sumber Daya Manusia', 'Keuangan'] as $name) {
+        $departments = [
+            'Teknologi Informasi',
+            'Sumber Daya Manusia',
+            'Keuangan',
+            'Produksi',
+            'Quality Control',
+            'Marketing',
+            'Gudang',
+        ];
+
+        foreach ($departments as $name) {
             Department::updateOrCreate(['name' => $name]);
         }
     }
