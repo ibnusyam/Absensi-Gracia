@@ -39,6 +39,9 @@ Route::prefix('v1')->group(function () {
         Route::post('overtime-requests', [OvertimeRequestController::class, 'store'])
             ->middleware('role:admin-bagian');
         Route::get('overtime-requests/{overtimeRequest}', [OvertimeRequestController::class, 'show']);
+        // Admin correction of a single employee's overtime row (times/compensation).
+        Route::patch('overtime-request-employees/{overtimeRequestEmployee}', [OvertimeRequestController::class, 'updateEmployee'])
+            ->middleware('role:admin-bagian,super-admin');
 
         // Overtime sessions (employee clocking)
         Route::post('overtime-sessions/{overtimeSession}/clock-in', [OvertimeSessionController::class, 'clockIn']);

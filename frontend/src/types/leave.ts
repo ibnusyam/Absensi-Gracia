@@ -11,6 +11,7 @@ export interface LeaveRequest {
   type_label: string
   start_date: string
   end_date: string
+  half_day: boolean
   total_days: number
   reason: string
   attachment_url: string | null

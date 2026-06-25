@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\AttendanceStatus;
 use App\Enums\RoleSlug;
 use App\Models\Attendance;
+use App\Models\HolidayCalendar;
 use App\Models\User;
 use App\Models\WorkLocation;
 use App\Models\WorkSchedule;
@@ -28,16 +29,25 @@ class AttendanceSeeder extends Seeder
             RoleSlug::AdminBagian->value,
         ]))->get();
 
-        // Last 10 calendar days; skip weekends.
-        for ($offset = 10; $offset >= 1; $offset--) {
-            $day = now()->setTimezone($tz)->subDays($offset);
-            if ($day->isWeekend()) {
+        // Whole current month, from the 1st up to today (skip weekends & holidays).
+        $today = now()->setTimezone($tz)->startOfDay();
+        $cursor = $today->copy()->startOfMonth();
+
+        $holidays = HolidayCalendar::whereDate('date', '>=', $cursor->toDateString())
+            ->whereDate('date', '<=', $today->toDateString())
+            ->pluck('date')
+            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+            ->flip();
+
+        for (; $cursor->lte($today); $cursor->addDay()) {
+            if ($cursor->isWeekend() || $holidays->has($cursor->toDateString())) {
                 continue;
             }
+            $day = $cursor->copy();
 
             foreach ($users as $user) {
                 // ~10% absent.
-                if (fake()->boolean(10)) {
+                if (random_int(1, 100) <= 10) {
                     Attendance::updateOrCreate(
                         ['user_id' => $user->id, 'date' => $day->toDateString()],
                         ['status' => AttendanceStatus::Absent, 'note' => 'Tanpa keterangan'],
@@ -46,23 +56,23 @@ class AttendanceSeeder extends Seeder
                     continue;
                 }
 
-                $late = fake()->boolean(25);
+                $late = random_int(1, 100) <= 25;
 
                 $deadlineLocal = Carbon::parse($day->toDateString().' '.$deadline, $tz);
                 $threshold = $deadlineLocal->copy()->addMinutes($tolerance);
 
                 if ($late) {
                     // Clock in after the tolerance threshold -> Terlambat.
-                    $clockInLocal = $threshold->copy()->addMinutes(fake()->numberBetween(1, 80));
+                    $clockInLocal = $threshold->copy()->addMinutes(random_int(1, 80));
                     $lateMinutes = (int) $deadlineLocal->diffInMinutes($clockInLocal);
                 } else {
                     // Clock in up to 40 minutes before the deadline -> Hadir.
-                    $clockInLocal = $deadlineLocal->copy()->subMinutes(fake()->numberBetween(0, 40));
+                    $clockInLocal = $deadlineLocal->copy()->subMinutes(random_int(0, 40));
                     $lateMinutes = null;
                 }
 
                 $clockIn = $clockInLocal->copy()->setTimezone('UTC');
-                $clockOut = (clone $clockIn)->addHours(8)->addMinutes(30 + fake()->numberBetween(0, 30));
+                $clockOut = (clone $clockIn)->addHours(8)->addMinutes(30 + random_int(0, 30));
 
                 Attendance::updateOrCreate(
                     ['user_id' => $user->id, 'date' => $day->toDateString()],

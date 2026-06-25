@@ -255,7 +255,8 @@ export function RequestsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-2 font-medium">
                     <Clock className="h-5 w-5 text-primary" />
-                    {formatDate(o.overtime_date)} · {o.planned_start}–{o.planned_end}
+                    {formatDate(o.overtime_date)}
+                    {o.department && ` · ${o.department.name}`}
                   </span>
                   <Badge variant={requestStatusVariant(o.status)}>{o.status_label}</Badge>
                 </div>

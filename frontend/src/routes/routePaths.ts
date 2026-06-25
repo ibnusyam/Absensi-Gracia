@@ -5,6 +5,7 @@ export const routePaths = {
   attendanceReport: '/attendance-report',
   leave: '/leave',
   overtime: '/overtime',
+  overtimeEdit: '/overtime/:id/edit',
   requests: '/requests',
   requestLeaveDetail: '/requests/leave/:id',
   requestOvertimeDetail: '/requests/overtime/:id',
@@ -30,3 +31,6 @@ export const requestLeaveDetailPath = (id: number | string) => `/requests/leave/
 
 /** Build the concrete path to an overtime request's detail page. */
 export const requestOvertimeDetailPath = (id: number | string) => `/requests/overtime/${id}`
+
+/** Build the concrete path to an overtime request's edit page. */
+export const overtimeEditPath = (id: number | string) => `/overtime/${id}/edit`

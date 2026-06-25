@@ -49,6 +49,8 @@ export interface User {
   no_jamsostek?: string | null
   rekening_bca?: string | null
   rekening_bni?: string | null
+  jenjang?: 'karyawan' | 'outsourcing' | null
+  jenjang_label?: string | null
   status_karir?: string | null
   tanggal_spk?: string | null
   kartu_pensiun?: string | null

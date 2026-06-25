@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             AttendanceSeeder::class,
             OvertimeSeeder::class,
             LeaveSeeder::class,
+            JenjangDemoSeeder::class,
         ]);
     }
 }

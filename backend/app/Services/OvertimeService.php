@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CompensationType;
 use App\Enums\OvertimeStatus;
 use App\Exceptions\BusinessRuleException;
 use App\Models\HolidayCalendar;
@@ -23,14 +24,16 @@ class OvertimeService
 
     public function __construct(
         private readonly AuditService $audit,
+        private readonly LeaveService $leaveService,
     ) {
     }
 
     /**
-     * Create a batch overtime request (one request, many employees), each with
-     * an empty session ready to be clocked once the request is fully approved.
+     * Create a batch overtime request (one request, many employees). Each employee
+     * carries their own planned start/end and compensation choice, plus an empty
+     * session ready to be clocked once the request is fully approved.
      *
-     * @param  array{overtime_date:string, planned_start:string, planned_end:string, reason:string, employee_ids:int[]}  $data
+     * @param  array{overtime_date:string, reason:string, employees:array<int,array{user_id:int, planned_start_at?:string, planned_end_at?:string, compensation_type?:string}>}  $data
      */
     public function create(User $requester, array $data): OvertimeRequest
     {
@@ -40,7 +43,10 @@ class OvertimeService
             throw new BusinessRuleException('Pengaju lembur belum tergabung dalam departemen.', 422);
         }
 
-        $employeeIds = array_values(array_unique($data['employee_ids']));
+        $employees = collect($data['employees'])
+            ->keyBy(fn ($e) => (int) $e['user_id'])
+            ->all();
+        $employeeIds = array_keys($employees);
 
         // Employees must belong to the requester's department.
         $validCount = User::whereIn('id', $employeeIds)
@@ -51,21 +57,22 @@ class OvertimeService
             throw new BusinessRuleException('Sebagian karyawan tidak berada di departemen Anda.', 422);
         }
 
-        return DB::transaction(function () use ($requester, $departmentId, $employeeIds, $data) {
+        return DB::transaction(function () use ($requester, $departmentId, $employees, $data) {
             $request = OvertimeRequest::create([
                 'requested_by' => $requester->id,
                 'department_id' => $departmentId,
                 'overtime_date' => $data['overtime_date'],
-                'planned_start' => $data['planned_start'],
-                'planned_end' => $data['planned_end'],
                 'reason' => $data['reason'],
                 'status' => OvertimeStatus::Pending,
             ]);
 
-            foreach ($employeeIds as $userId) {
+            foreach ($employees as $userId => $emp) {
                 $pivot = OvertimeRequestEmployee::create([
                     'overtime_request_id' => $request->id,
                     'user_id' => $userId,
+                    'planned_start_at' => $this->toUtc($emp['planned_start_at'] ?? null),
+                    'planned_end_at' => $this->toUtc($emp['planned_end_at'] ?? null),
+                    'compensation_type' => $emp['compensation_type'] ?? CompensationType::Money->value,
                 ]);
 
                 OvertimeSession::create([
@@ -76,6 +83,83 @@ class OvertimeService
             $this->audit->created($request);
 
             return $request->load(['employees.user', 'employees.session']);
+        });
+    }
+
+    /**
+     * Interpret an incoming local datetime string (display timezone, e.g. from a
+     * datetime-local input) and convert it to UTC for storage. Null passes through.
+     */
+    private function toUtc(?string $value): ?Carbon
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return Carbon::parse($value, config('services.display_timezone'))->utc();
+    }
+
+    /**
+     * Leave days earned when an employee opts to convert overtime into leave
+     * ("ganti hari"). Counted only in whole 4-hour blocks (rounded down):
+     *  - Holiday/weekend overtime: 1 leave day per 4 hours.
+     *  - Workday overtime:        0.5 leave day per 4 hours.
+     */
+    public function computeLeaveDays(float $hours, bool $isHoliday): float
+    {
+        $blocks = (int) floor($hours / 4);
+
+        return $blocks * ($isHoliday ? 1.0 : 0.5);
+    }
+
+    /**
+     * Reconcile the leave-day credit for one overtime employee row against the
+     * current state. Idempotent: the difference from what was already credited is
+     * applied to the annual quota, so it supports edits and compensation changes
+     * (including reversals when hours drop or the type switches back to money).
+     */
+    public function settleLeaveCompensation(OvertimeRequestEmployee $pivot): void
+    {
+        $pivot->loadMissing(['overtimeRequest', 'session', 'user']);
+        $request = $pivot->overtimeRequest;
+        $session = $pivot->session;
+
+        $hours = $session?->total_hours !== null ? (float) $session->total_hours : null;
+
+        // Eligible only when fully approved, the session is finished, and the
+        // employee chose to convert to leave days.
+        $eligible = $request
+            && $request->status->isFullyApproved()
+            && $pivot->compensation_type === CompensationType::Leave
+            && $hours !== null
+            && $pivot->user;
+
+        // Resolve the employee's overtime start in the display timezone so the
+        // holiday lookup and quota year use the local calendar date.
+        $tz = config('services.display_timezone');
+        $rawStart = $pivot->planned_start_at ?? $session?->clock_in_at ?? $request?->overtime_date;
+        $start = ($rawStart instanceof Carbon ? $rawStart->copy() : Carbon::parse($rawStart))->setTimezone($tz);
+
+        $target = $eligible
+            ? $this->computeLeaveDays($hours, $this->isHoliday($start))
+            : 0.0;
+
+        $credited = (float) $pivot->leave_days_credited;
+        $delta = round($target - $credited, 1);
+
+        if ($delta === 0.0) {
+            return;
+        }
+
+        DB::transaction(function () use ($pivot, $start, $delta, $target) {
+            $year = $start->year;
+            $quota = $this->leaveService->quotaFor($pivot->user, $year);
+            $quota->total_days = (float) $quota->total_days + $delta;
+            $quota->syncRemaining();
+            $quota->save();
+
+            $pivot->leave_days_credited = $target;
+            $pivot->save();
         });
     }
 
@@ -116,7 +200,66 @@ class OvertimeService
         $session->total_hours = $totalHours;
         $session->save();
 
+        // Credit leave days if this employee chose "ganti hari".
+        $this->settleLeaveCompensation($session->requestEmployee);
+
         return $session;
+    }
+
+    /**
+     * Admin correction of one employee's overtime row: their planned schedule,
+     * the actual clocked times, and/or the compensation type. Allowed at any
+     * status except rejected, including after full approval (overtime is dynamic).
+     * Recomputes worked hours and re-settles any leave-day credit.
+     *
+     * @param  array{planned_start_at?:?string, planned_end_at?:?string, clock_in_at?:?string, clock_out_at?:?string, compensation_type?:string}  $data
+     */
+    public function adminUpdateEmployee(OvertimeRequestEmployee $pivot, User $actor, array $data): OvertimeRequestEmployee
+    {
+        $pivot->loadMissing(['overtimeRequest', 'session']);
+        $request = $pivot->overtimeRequest;
+
+        $owns = $request && $request->requested_by === $actor->id;
+        if (! $owns && ! $actor->hasRole('super-admin')) {
+            throw new BusinessRuleException('Anda tidak berwenang mengubah lembur ini.', 403);
+        }
+
+        if ($request && $request->status === OvertimeStatus::Rejected) {
+            throw new BusinessRuleException('Pengajuan lembur yang ditolak tidak dapat diubah.', 422);
+        }
+
+        return DB::transaction(function () use ($pivot, $data) {
+            if (array_key_exists('planned_start_at', $data)) {
+                $pivot->planned_start_at = $this->toUtc($data['planned_start_at']);
+            }
+            if (array_key_exists('planned_end_at', $data)) {
+                $pivot->planned_end_at = $this->toUtc($data['planned_end_at']);
+            }
+            if (array_key_exists('compensation_type', $data)) {
+                $pivot->compensation_type = $data['compensation_type'];
+            }
+            $pivot->save();
+
+            // Actual clocked times live on the session and drive worked hours.
+            $session = $pivot->session;
+            if ($session && (array_key_exists('clock_in_at', $data) || array_key_exists('clock_out_at', $data))) {
+                if (array_key_exists('clock_in_at', $data)) {
+                    $session->clock_in_at = $this->toUtc($data['clock_in_at']);
+                }
+                if (array_key_exists('clock_out_at', $data)) {
+                    $session->clock_out_at = $this->toUtc($data['clock_out_at']);
+                }
+
+                $session->total_hours = ($session->clock_in_at && $session->clock_out_at)
+                    ? round($session->clock_in_at->floatDiffInHours($session->clock_out_at), 2)
+                    : null;
+                $session->save();
+            }
+
+            $this->settleLeaveCompensation($pivot->fresh(['overtimeRequest', 'session', 'user']));
+
+            return $pivot->load(['user', 'session', 'overtimeRequest']);
+        });
     }
 
     /**

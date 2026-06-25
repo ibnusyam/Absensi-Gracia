@@ -15,6 +15,7 @@ export function formatDateTime(value: string | null | undefined): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -23,6 +24,7 @@ export function formatTime(value: string | null | undefined): string {
   return new Date(value).toLocaleTimeString('id-ID', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 

@@ -30,6 +30,7 @@ const emptyForm = {
   type: 'annual' as LeaveType,
   start_date: '',
   end_date: '',
+  half_day: false,
   reason: '',
 }
 
@@ -50,7 +51,9 @@ export function LeavePage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    await createLeave.mutateAsync({ ...form, attachment })
+    // A half-day leave always covers exactly one day.
+    const end_date = form.half_day ? form.start_date : form.end_date
+    await createLeave.mutateAsync({ ...form, end_date, attachment })
     reset()
     setShowForm(false)
   }
@@ -116,6 +119,17 @@ export function LeavePage() {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="duration">Durasi</Label>
+                <Select
+                  id="duration"
+                  value={form.half_day ? 'half' : 'full'}
+                  onChange={(e) => setForm({ ...form, half_day: e.target.value === 'half' })}
+                >
+                  <option value="full">Hari penuh</option>
+                  <option value="half">Setengah hari (0,5)</option>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="start_date">Tanggal Mulai</Label>
                 <Input
                   id="start_date"
@@ -125,17 +139,19 @@ export function LeavePage() {
                   onChange={(e) => setForm({ ...form, start_date: e.target.value })}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="end_date">Tanggal Selesai</Label>
-                <Input
-                  id="end_date"
-                  type="date"
-                  required
-                  min={form.start_date || undefined}
-                  value={form.end_date}
-                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                />
-              </div>
+              {!form.half_day && (
+                <div className="space-y-2">
+                  <Label htmlFor="end_date">Tanggal Selesai</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    required
+                    min={form.start_date || undefined}
+                    value={form.end_date}
+                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                  />
+                </div>
+              )}
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="reason">Alasan</Label>
                 <Textarea

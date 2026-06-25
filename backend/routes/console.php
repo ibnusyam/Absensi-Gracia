@@ -10,9 +10,10 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Accrue 1 leave day to every active employee on the first day of each month.
+// Accrue leave quota for the completed 21->20 office cycle, evaluated on the 21st.
+// Karyawan: +1 unconditionally. Outsourcing: +1 only when present on >20 cycle days.
 Schedule::command(AccrueLeaveQuota::class)
-    ->monthlyOn(1, '00:05')
+    ->monthlyOn(21, '00:05')
     ->timezone(config('services.display_timezone'));
 
 // Mark absentees at the end of each working day.

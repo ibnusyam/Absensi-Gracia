@@ -28,6 +28,7 @@ class User extends Authenticatable
         'joined_at',
         'is_active',
         'fcm_token',
+        'jenjang',
         // Legacy HRD (master) fields
         'legacy_id',
         'no_ktp',
@@ -74,6 +75,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'joined_at' => 'date',
             'is_active' => 'boolean',
+            'jenjang' => \App\Enums\Jenjang::class,
             'tanggal_lahir' => 'date',
             'tanggal_spk' => 'date',
             'kartu_pensiun' => 'date',

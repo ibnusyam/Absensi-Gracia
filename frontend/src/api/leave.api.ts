@@ -21,6 +21,7 @@ export interface CreateLeavePayload {
   type: LeaveType
   start_date: string
   end_date: string
+  half_day?: boolean
   reason: string
   attachment?: File | null
 }
@@ -43,6 +44,7 @@ export const leaveApi = {
     form.append('type', payload.type)
     form.append('start_date', payload.start_date)
     form.append('end_date', payload.end_date)
+    form.append('half_day', payload.half_day ? '1' : '0')
     form.append('reason', payload.reason)
     if (payload.attachment) form.append('attachment', payload.attachment)
 

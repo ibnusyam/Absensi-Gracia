@@ -4,7 +4,7 @@ import { PageLoader } from '@/components/ui/spinner'
 import { useLeaveDetail } from '@/features/leave/hooks/useLeave'
 import { useOvertimeDetail } from '@/features/overtime/hooks/useOvertime'
 import { requestStatusVariant } from '@/lib/statusBadge'
-import { formatDate, formatTime } from '@/lib/utils'
+import { formatDate, formatDateTime, formatTime } from '@/lib/utils'
 import type { LeaveStatus } from '@/types/leave'
 import type { OvertimeStatus } from '@/types/overtime'
 import { ApprovalTimeline } from './ApprovalTimeline'
@@ -104,10 +104,7 @@ export function RequestDetailView({ kind, id }: { kind: RequestKind; id: number 
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-lg font-semibold text-slate-800">{formatDate(o.overtime_date)}</p>
-                <p className="text-sm text-muted-foreground">
-                  {o.planned_start}–{o.planned_end}
-                  {o.department && ` · ${o.department.name}`}
-                </p>
+                <p className="text-sm text-muted-foreground">{o.department?.name ?? '-'}</p>
               </div>
               <Badge variant={requestStatusVariant(o.status)}>{o.status_label}</Badge>
             </div>
@@ -121,7 +118,17 @@ export function RequestDetailView({ kind, id }: { kind: RequestKind; id: number 
               <div className="divide-y rounded-md border">
                 {o.employees?.map((emp) => (
                   <div key={emp.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <span>{emp.user?.name ?? `#${emp.user_id}`}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span>{emp.user?.name ?? `#${emp.user_id}`}</span>
+                        <Badge variant={emp.compensation_type === 'leave' ? 'success' : 'muted'}>
+                          {emp.compensation_label}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        Rencana {formatDateTime(emp.planned_start_at)} – {formatDateTime(emp.planned_end_at)}
+                      </span>
+                    </div>
                     {emp.session?.clock_out_at ? (
                       <span className="text-right text-xs text-muted-foreground">
                         {formatTime(emp.session.clock_in_at)}–{formatTime(emp.session.clock_out_at)}

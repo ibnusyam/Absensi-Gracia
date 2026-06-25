@@ -52,17 +52,27 @@ class LeaveService
     public function create(User $user, array $data, ?UploadedFile $attachment = null): LeaveRequest
     {
         $type = $data['type'] instanceof LeaveType ? $data['type'] : LeaveType::from($data['type']);
+        $halfDay = (bool) ($data['half_day'] ?? false);
         $start = Carbon::parse($data['start_date']);
-        $end = Carbon::parse($data['end_date']);
+        // A half-day leave always covers exactly one day.
+        $end = $halfDay ? $start->copy() : Carbon::parse($data['end_date']);
 
         if ($end->lt($start)) {
             throw new BusinessRuleException('Tanggal selesai tidak boleh sebelum tanggal mulai.', 422);
         }
 
-        $totalDays = $this->workingDaysBetween($start, $end);
+        if ($halfDay) {
+            // The single day must still be a working day to count.
+            if ($this->workingDaysBetween($start, $start) < 1) {
+                throw new BusinessRuleException('Tanggal cuti setengah hari harus jatuh pada hari kerja.', 422);
+            }
+            $totalDays = 0.5;
+        } else {
+            $totalDays = (float) $this->workingDaysBetween($start, $end);
 
-        if ($totalDays < 1) {
-            throw new BusinessRuleException('Rentang cuti tidak mengandung hari kerja.', 422);
+            if ($totalDays < 1) {
+                throw new BusinessRuleException('Rentang cuti tidak mengandung hari kerja.', 422);
+            }
         }
 
         if ($type->consumesQuota()) {
@@ -80,12 +90,13 @@ class LeaveService
             $attachmentPath = $attachment->store("leave-attachments/{$user->id}", 'public');
         }
 
-        return DB::transaction(function () use ($user, $type, $start, $end, $totalDays, $data, $attachmentPath) {
+        return DB::transaction(function () use ($user, $type, $start, $end, $halfDay, $totalDays, $data, $attachmentPath) {
             $leave = LeaveRequest::create([
                 'user_id' => $user->id,
                 'type' => $type,
                 'start_date' => $start->toDateString(),
                 'end_date' => $end->toDateString(),
+                'half_day' => $halfDay,
                 'total_days' => $totalDays,
                 'reason' => $data['reason'],
                 'attachment_path' => $attachmentPath,

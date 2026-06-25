@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { overtimeApi, type CreateOvertimePayload, type OvertimeFilters } from '@/api/overtime.api'
+import {
+  overtimeApi,
+  type CreateOvertimePayload,
+  type OvertimeFilters,
+  type UpdateOvertimeEmployeePayload,
+} from '@/api/overtime.api'
 import { getApiErrorMessage } from '@/api/client'
 import { toast } from '@/components/ui/toast'
 
@@ -27,6 +32,19 @@ export function useCreateOvertime() {
       qc.invalidateQueries({ queryKey: ['overtime'] })
     },
     onError: (error) => toast.error(getApiErrorMessage(error, 'Gagal mengajukan lembur.')),
+  })
+}
+
+export function useUpdateOvertimeEmployee() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: UpdateOvertimeEmployeePayload }) =>
+      overtimeApi.updateEmployee(id, payload),
+    onSuccess: () => {
+      toast.success('Data lembur karyawan diperbarui.')
+      qc.invalidateQueries({ queryKey: ['overtime'] })
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, 'Gagal memperbarui data lembur.')),
   })
 }
 

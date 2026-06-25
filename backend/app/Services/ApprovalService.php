@@ -19,6 +19,7 @@ class ApprovalService
 {
     public function __construct(
         private readonly LeaveService $leaveService,
+        private readonly OvertimeService $overtimeService,
         private readonly FcmService $fcm,
         private readonly AuditService $audit,
     ) {
@@ -108,6 +109,15 @@ class ApprovalService
             $request->save();
             $this->log($request, $approver, $stage, $action, $notes);
             $this->audit->updated($request, $old);
+
+            // Once fully approved, credit leave days for any "ganti hari" employee
+            // whose session is already finished (e.g. approved after the fact).
+            if ($request->status === OvertimeStatus::ApprovedByDirector) {
+                $request->load('employees.session', 'employees.user');
+                foreach ($request->employees as $pivot) {
+                    $this->overtimeService->settleLeaveCompensation($pivot);
+                }
+            }
 
             $this->notifyOvertimeOutcome($request, $action, $stage);
 

@@ -25,7 +25,13 @@ const leaveTypeOptions: { value: LeaveType; label: string }[] = [
   { value: 'unpaid', label: 'Tanpa Gaji' },
 ]
 
-const emptyForm = { type: 'annual' as LeaveType, start_date: '', end_date: '', reason: '' }
+const emptyForm = {
+  type: 'annual' as LeaveType,
+  start_date: '',
+  end_date: '',
+  half_day: false,
+  reason: '',
+}
 
 export function MobileLeavePage() {
   const quota = useLeaveQuota()
@@ -39,7 +45,8 @@ export function MobileLeavePage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    await createLeave.mutateAsync({ ...form, attachment })
+    const end_date = form.half_day ? form.start_date : form.end_date
+    await createLeave.mutateAsync({ ...form, end_date, attachment })
     setForm(emptyForm)
     setAttachment(null)
     setShowForm(false)
@@ -85,9 +92,20 @@ export function MobileLeavePage() {
                 ))}
               </Select>
             </div>
+            <div className="space-y-1">
+              <Label htmlFor="m-duration">Durasi</Label>
+              <Select
+                id="m-duration"
+                value={form.half_day ? 'half' : 'full'}
+                onChange={(e) => setForm({ ...form, half_day: e.target.value === 'half' })}
+              >
+                <option value="full">Hari penuh</option>
+                <option value="half">Setengah hari (0,5)</option>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="m-start">Mulai</Label>
+                <Label htmlFor="m-start">{form.half_day ? 'Tanggal' : 'Mulai'}</Label>
                 <Input
                   id="m-start"
                   type="date"
@@ -96,17 +114,19 @@ export function MobileLeavePage() {
                   onChange={(e) => setForm({ ...form, start_date: e.target.value })}
                 />
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="m-end">Selesai</Label>
-                <Input
-                  id="m-end"
-                  type="date"
-                  required
-                  min={form.start_date || undefined}
-                  value={form.end_date}
-                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                />
-              </div>
+              {!form.half_day && (
+                <div className="space-y-1">
+                  <Label htmlFor="m-end">Selesai</Label>
+                  <Input
+                    id="m-end"
+                    type="date"
+                    required
+                    min={form.start_date || undefined}
+                    value={form.end_date}
+                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                  />
+                </div>
+              )}
             </div>
             <div className="space-y-1">
               <Label htmlFor="m-reason">Alasan</Label>

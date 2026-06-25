@@ -15,6 +15,7 @@ import { LeavePage } from '@/features/leave/pages/LeavePage'
 import { MobileLeavePage } from '@/features/leave/pages/MobileLeavePage'
 import { OvertimePage } from '@/features/overtime/pages/OvertimePage'
 import { MobileOvertimePage } from '@/features/overtime/pages/MobileOvertimePage'
+import { OvertimeEditPage } from '@/features/overtime/pages/OvertimeEditPage'
 import { RequestsPage } from '@/features/requests/pages/RequestsPage'
 import { MobileRequestsPage } from '@/features/requests/pages/MobileRequestsPage'
 import { RequestDetailPage } from '@/features/requests/pages/RequestDetailPage'
@@ -62,6 +63,10 @@ function App() {
             path={routePaths.overtime}
             element={isMobile ? <MobileOvertimePage /> : <OvertimePage />}
           />
+          {/* Admin edit of per-employee overtime times/compensation */}
+          <Route element={<ProtectedRoute roles={['admin-bagian', 'super-admin']} />}>
+            <Route path={routePaths.overtimeEdit} element={<OvertimeEditPage />} />
+          </Route>
           <Route
             path={routePaths.users}
             element={isMobile ? <MobileUsersPage /> : <UsersPage />}

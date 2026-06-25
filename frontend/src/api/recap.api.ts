@@ -24,8 +24,12 @@ export interface RecapOvertimeSession {
   overtime_date: string
   is_holiday: boolean
   total_hours: number
+  /** 'money' = paid (tiers); 'leave' = converted to leave days. */
+  compensation_type: 'money' | 'leave'
   /** Hours keyed by pay multiplier, e.g. { "1.5": 1, "2": 1.5 }. */
   tiers: Record<string, number>
+  /** Leave days earned when compensation_type is 'leave'. */
+  leave_days: number
 }
 
 /** Overtime accumulated per employee across the selected date range. */
@@ -35,11 +39,15 @@ export interface RecapOvertimeRow {
   department_name: string | null
   /** Hours summed across all of this employee's sessions in the range. */
   total_hours: number
+  /** Hours compensated as money (excludes "ganti hari" sessions). */
+  money_hours: number
+  /** Leave days earned from "ganti hari" sessions. */
+  leave_days: number
   /** Number of completed overtime sessions. */
   session_count: number
   /** Number of distinct overtime dates. */
   day_count: number
-  /** Tiered hours summed across all sessions, keyed by pay multiplier. */
+  /** Tiered hours summed across paid sessions, keyed by pay multiplier. */
   tiers: Record<string, number>
   /** The individual sessions making up the totals (sorted by date). */
   sessions: RecapOvertimeSession[]
@@ -51,6 +59,8 @@ export interface RecapOvertimeResponse {
     total_sessions: number
     total_employees: number
     total_hours: number
+    total_money_hours: number
+    total_leave_days: number
     hours_by_multiplier: Record<string, number>
   }
   data: RecapOvertimeRow[]

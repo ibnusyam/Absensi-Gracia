@@ -93,8 +93,30 @@ export function AttendanceRecapPage() {
 
   const dayHeaders = useMemo(() => dates.map(dayHeader), [dates])
 
+  // Per-day count of employees who came in (Hadir + Terlambat); other statuses
+  // (cuti/izin/sakit/alpha/off/libur) are not counted.
+  const dailyMasuk = useMemo(
+    () =>
+      dates.map((_, i) =>
+        rows.reduce(
+          (acc, r) => acc + (r.cells[i] === 'present' || r.cells[i] === 'late' ? 1 : 0),
+          0,
+        ),
+      ),
+    [dates, rows],
+  )
+
+  // Column totals across all employees, for the footer's recap columns.
+  const columnTotals = useMemo(() => {
+    const sums: Record<string, number> = {}
+    TOTAL_COLUMNS.forEach((c) => {
+      sums[c.key] = rows.reduce((acc, r) => acc + totalValue(r.totals, c.key), 0)
+    })
+    return sums
+  }, [rows])
+
   const handleExport = () => {
-    const data = rows.map((r) => {
+    const data: Record<string, string | number | null>[] = rows.map((r) => {
       const base: Record<string, string | number | null> = {
         Nama: r.user.name,
         NIK: r.user.employee_id ?? '-',
@@ -108,6 +130,23 @@ export function AttendanceRecapPage() {
       })
       return base
     })
+
+    // Footer: per-day Masuk count + column totals.
+    if (rows.length > 0) {
+      const footer: Record<string, string | number | null> = {
+        Nama: 'TOTAL MASUK',
+        NIK: '',
+        Departemen: '',
+      }
+      dates.forEach((ds, i) => {
+        footer[excelDateLabel(ds)] = dailyMasuk[i]
+      })
+      TOTAL_COLUMNS.forEach((c) => {
+        footer[c.label] = columnTotals[c.key]
+      })
+      data.push(footer)
+    }
+
     exportToXlsx(`rekap-absensi-${startDate}_${endDate}`, 'Rekap Absensi', data)
   }
 
@@ -300,6 +339,40 @@ export function AttendanceRecapPage() {
                     </tr>
                   )}
                 </tbody>
+                {rows.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t-2 border-t-slate-200 bg-slate-50 font-semibold text-slate-800">
+                      <td className="sticky left-0 bottom-0 z-10 bg-slate-50 px-4 py-2 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.12)]">
+                        <div className="whitespace-nowrap">Total Masuk / hari</div>
+                        <div className="text-xs font-normal text-muted-foreground">
+                          Hadir + Terlambat
+                        </div>
+                      </td>
+                      {dailyMasuk.map((count, i) => (
+                        <td
+                          key={dates[i]}
+                          className={cn(
+                            'px-1 py-2 text-center tabular-nums',
+                            dayHeaders[i]?.isWeekend && 'bg-slate-100/70',
+                          )}
+                        >
+                          {count}
+                        </td>
+                      ))}
+                      {TOTAL_COLUMNS.map((c, idx) => (
+                        <td
+                          key={c.key}
+                          className={cn(
+                            'px-2 py-2 text-center tabular-nums',
+                            idx === 0 && 'border-l-2 border-l-slate-200',
+                          )}
+                        >
+                          {columnTotals[c.key]}
+                        </td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           </CardContent>

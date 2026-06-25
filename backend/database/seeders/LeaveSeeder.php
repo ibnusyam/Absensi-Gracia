@@ -52,15 +52,19 @@ class LeaveSeeder extends Seeder
         $this->approve($service, $hrd, $this->make($service, $employees[0], LeaveType::Annual, $weekdays[2], $weekdays[3], 'Liburan keluarga.'));
         $this->approve($service, $hrd, $this->make($service, $employees[1], LeaveType::Sick, $weekdays[4], $weekdays[4], 'Demam, istirahat.'));
         $this->approve($service, $hrd, $this->make($service, $employees[2], LeaveType::Annual, $weekdays[5], $weekdays[7], 'Acara pernikahan saudara.'));
+        // Setengah hari, disetujui — 0,5 hari.
+        $this->approve($service, $hrd, $this->make($service, $employees[3], LeaveType::Annual, $weekdays[6], $weekdays[6], 'Urusan bank, setengah hari.', true));
 
         // ---- Pending (muncul di Pengajuan Karyawan) ----
         $this->make($service, $employees[3], LeaveType::Annual, $weekdays[9], $weekdays[10], 'Urusan pribadi.');
         $this->make($service, $employees[0], LeaveType::Emergency, $weekdays[11], $weekdays[11], 'Keperluan mendadak.');
+        // Setengah hari, menunggu — 0,5 hari.
+        $this->make($service, $employees[2], LeaveType::Annual, $weekdays[10], $weekdays[10], 'Kontrol dokter, setengah hari.', true);
 
         // ---- Rejected (finalised) ----
         $this->reject($service, $hrd, $this->make($service, $employees[1], LeaveType::Unpaid, $weekdays[8], $weekdays[8], 'Cuti tanpa bayaran.'));
 
-        $this->command?->info('LeaveSeeder selesai: 3 disetujui, 2 menunggu, 1 ditolak (bulan ini).');
+        $this->command?->info('LeaveSeeder selesai: 4 disetujui (1 setengah hari), 3 menunggu (1 setengah hari), 1 ditolak (bulan ini).');
     }
 
     /** Build a pending leave request via the real service. */
@@ -71,11 +75,13 @@ class LeaveSeeder extends Seeder
         Carbon $start,
         Carbon $end,
         string $reason,
+        bool $halfDay = false,
     ): LeaveRequest {
         return $service->create($user, [
             'type' => $type,
             'start_date' => $start->toDateString(),
             'end_date' => $end->toDateString(),
+            'half_day' => $halfDay,
             'reason' => $reason,
         ]);
     }

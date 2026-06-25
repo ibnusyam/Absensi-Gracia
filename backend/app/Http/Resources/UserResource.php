@@ -44,6 +44,8 @@ class UserResource extends JsonResource
             'no_jamsostek' => $this->no_jamsostek,
             'rekening_bca' => $this->rekening_bca,
             'rekening_bni' => $this->rekening_bni,
+            'jenjang' => $this->jenjang?->value,
+            'jenjang_label' => $this->jenjang?->label(),
             'status_karir' => $this->status_karir,
             'tanggal_spk' => $this->displayDate($this->tanggal_spk),
             'kartu_pensiun' => $this->displayDate($this->kartu_pensiun),

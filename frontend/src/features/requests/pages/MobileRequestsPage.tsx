@@ -97,10 +97,7 @@ export function MobileRequestsPage() {
                 </span>
                 <Badge variant={requestStatusVariant(o.status)}>{o.status_label}</Badge>
               </div>
-              <p className="text-sm text-slate-600">
-                {o.planned_start}–{o.planned_end}
-                {o.department && ` · ${o.department.name}`}
-              </p>
+              <p className="text-sm text-slate-600">{o.department?.name ?? '-'}</p>
               <div className="mt-2 space-y-1">
                 {o.employees?.map((emp) => (
                   <div key={emp.id} className="flex items-center justify-between text-xs text-slate-500">

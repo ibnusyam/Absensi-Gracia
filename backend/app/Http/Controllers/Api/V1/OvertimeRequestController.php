@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Overtime\StoreOvertimeRequest;
+use App\Http\Requests\Overtime\UpdateOvertimeEmployeeRequest;
 use App\Enums\OvertimeStatus;
+use App\Http\Resources\OvertimeRequestEmployeeResource;
 use App\Http\Resources\OvertimeRequestResource;
 use App\Models\OvertimeRequest;
+use App\Models\OvertimeRequestEmployee;
 use App\Services\OvertimeService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -76,5 +79,25 @@ class OvertimeRequestController extends Controller
         ]);
 
         return $this->respondSuccess(new OvertimeRequestResource($overtimeRequest), 'OK');
+    }
+
+    /**
+     * Admin correction of one employee's overtime row (planned schedule, actual
+     * clocked times, compensation type) — allowed even after full approval.
+     */
+    public function updateEmployee(
+        UpdateOvertimeEmployeeRequest $request,
+        OvertimeRequestEmployee $overtimeRequestEmployee,
+    ): JsonResponse {
+        $pivot = $this->overtimeService->adminUpdateEmployee(
+            $overtimeRequestEmployee,
+            $request->user(),
+            $request->validated(),
+        );
+
+        return $this->respondSuccess(
+            new OvertimeRequestEmployeeResource($pivot),
+            'Data lembur karyawan diperbarui.',
+        );
     }
 }

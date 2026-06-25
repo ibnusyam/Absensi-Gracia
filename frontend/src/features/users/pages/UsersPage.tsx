@@ -88,6 +88,7 @@ export function UsersPage() {
                     <th className="px-4 py-3 font-medium">NIK</th>
                     <th className="px-4 py-3 font-medium">Email</th>
                     <th className="px-4 py-3 font-medium">Bagian</th>
+                    <th className="px-4 py-3 font-medium">Jenjang</th>
                     <th className="px-4 py-3 font-medium">Role</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium"></th>
@@ -100,6 +101,13 @@ export function UsersPage() {
                       <td className="px-4 py-3 text-muted-foreground">{u.employee_id ?? '-'}</td>
                       <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
                       <td className="px-4 py-3">{u.department?.name ?? '-'}</td>
+                      <td className="px-4 py-3">
+                        {u.jenjang === 'outsourcing' ? (
+                          <Badge variant="muted">Outsourcing</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">Karyawan</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         {u.role ? <Badge variant="muted">{u.role.name}</Badge> : '-'}
                       </td>

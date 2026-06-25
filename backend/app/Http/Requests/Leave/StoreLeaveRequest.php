@@ -19,6 +19,7 @@ class StoreLeaveRequest extends FormRequest
             'type' => ['required', Rule::enum(LeaveType::class)],
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'half_day' => ['nullable', 'boolean'],
             'reason' => ['required', 'string', 'max:1000'],
             'attachment' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ];

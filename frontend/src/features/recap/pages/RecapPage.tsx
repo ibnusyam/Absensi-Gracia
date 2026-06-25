@@ -103,6 +103,7 @@ export function RecapPage() {
         ...Object.fromEntries(
           tierKeys.map((k) => [`Jam ${multiplierLabel(k)}`, r.tiers[k] ?? 0]),
         ),
+        'Hari Cuti': r.leave_days,
       }))
       exportToXlsx(`rekap-lembur-${startDate}_${endDate}`, 'Rekap Lembur', rows)
     }
@@ -251,8 +252,9 @@ export function RecapPage() {
         <PageLoader />
       ) : (
         <>
-          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-4">
             <StatCard label="Total jam lembur" value={`${overtime.data?.summary.total_hours ?? 0} jam`} />
+            <StatCard label="Hari cuti (ganti hari)" value={`${overtime.data?.summary.total_leave_days ?? 0} hari`} />
             <StatCard label="Jumlah karyawan" value={overtime.data?.summary.total_employees ?? 0} />
             <StatCard label="Total sesi" value={overtime.data?.summary.total_sessions ?? 0} />
           </div>
@@ -287,6 +289,7 @@ export function RecapPage() {
                         </th>
                       ))}
                       <th className="px-4 py-3 text-center font-medium">Total Jam</th>
+                      <th className="px-4 py-3 text-center font-medium">Hari Cuti</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -320,10 +323,13 @@ export function RecapPage() {
                             <td className="px-4 py-3 text-center font-semibold tabular-nums text-slate-800">
                               {r.total_hours}
                             </td>
+                            <td className="px-4 py-3 text-center font-semibold tabular-nums text-emerald-600">
+                              {r.leave_days > 0 ? r.leave_days : '-'}
+                            </td>
                           </tr>
                           {isOpen && (
                             <tr className="border-b last:border-0 bg-slate-50/60">
-                              <td colSpan={5 + tierKeys.length} className="px-4 py-2">
+                              <td colSpan={6 + tierKeys.length} className="px-4 py-2">
                                 <table className="w-full text-xs">
                                   <thead>
                                     <tr className="text-left text-muted-foreground">
@@ -334,7 +340,8 @@ export function RecapPage() {
                                           {multiplierLabel(k)}
                                         </th>
                                       ))}
-                                      <th className="py-1.5 text-center font-medium">Jam</th>
+                                      <th className="py-1.5 pr-4 text-center font-medium">Jam</th>
+                                      <th className="py-1.5 text-center font-medium">Hari Cuti</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -351,7 +358,10 @@ export function RecapPage() {
                                             {tierCell(s.tiers[k])}
                                           </td>
                                         ))}
-                                        <td className="py-1.5 text-center tabular-nums">{s.total_hours}</td>
+                                        <td className="py-1.5 pr-4 text-center tabular-nums">{s.total_hours}</td>
+                                        <td className="py-1.5 text-center tabular-nums text-emerald-600">
+                                          {s.compensation_type === 'leave' && s.leave_days > 0 ? s.leave_days : '-'}
+                                        </td>
                                       </tr>
                                     ))}
                                   </tbody>
@@ -364,7 +374,7 @@ export function RecapPage() {
                     })}
                     {overtime.data?.data.length === 0 && (
                       <tr>
-                        <td colSpan={5 + tierKeys.length} className="px-4 py-6 text-center text-muted-foreground">
+                        <td colSpan={6 + tierKeys.length} className="px-4 py-6 text-center text-muted-foreground">
                           Tidak ada lembur selesai pada periode ini.
                         </td>
                       </tr>

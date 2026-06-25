@@ -10,7 +10,7 @@ import { useUserDetail, useOffPeriodActions, useUserActions } from '@/features/u
 import { useHasRole } from '@/features/auth/hooks/useAuth'
 import { userEditPath } from '@/routes/routePaths'
 import { requestStatusVariant } from '@/lib/statusBadge'
-import { formatDate, formatTime, cn } from '@/lib/utils'
+import { formatDate, formatDateTime, formatTime, cn } from '@/lib/utils'
 import type { UserDetail } from '@/api/masterData.api'
 
 type Tab = 'bio' | 'leave' | 'overtime' | 'off'
@@ -87,6 +87,7 @@ function BiodataTab({ detail }: { detail: UserDetail }) {
         }
       />
       <Row label="Bergabung" value={u.joined_at ? formatDate(u.joined_at) : '-'} />
+      <Row label="Jenjang" value={u.jenjang_label ?? '-'} />
       <Row
         label="Sisa cuti tahun ini"
         value={
@@ -192,8 +193,10 @@ function OvertimeTab({ detail }: { detail: UserDetail }) {
               <Badge variant={requestStatusVariant(o.status)}>{o.status_label}</Badge>
             </div>
             <p className="text-sm text-muted-foreground">
-              Rencana {o.planned_start}–{o.planned_end}
-              {o.department && ` · ${o.department.name}`}
+              {mine?.planned_start_at
+                ? `Rencana ${formatDateTime(mine.planned_start_at)} – ${formatDateTime(mine.planned_end_at)}`
+                : 'Rencana belum diatur'}
+              {mine && ` · ${mine.compensation_label}`}
             </p>
             <p className="mt-1 text-sm text-slate-600">
               {s?.clock_out_at

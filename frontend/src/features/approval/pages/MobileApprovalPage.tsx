@@ -74,7 +74,8 @@ export function MobileApprovalPage() {
                   <Badge variant={requestStatusVariant(o.status)}>{o.status_label}</Badge>
                 </div>
                 <p className="text-sm text-slate-500">
-                  {formatDate(o.overtime_date)} · {o.planned_start}–{o.planned_end}
+                  {formatDate(o.overtime_date)}
+                  {o.department && ` · ${o.department.name}`}
                 </p>
                 <p className="mt-1 text-sm text-slate-600">{o.reason}</p>
                 <p className="mt-1 text-xs text-slate-400">

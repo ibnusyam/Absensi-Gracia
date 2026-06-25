@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\CompensationType;
 use App\Enums\LeaveStatus;
 use App\Enums\OvertimeStatus;
 use App\Http\Controllers\Controller;
@@ -111,7 +112,7 @@ class RecapController extends Controller
             'summary' => [
                 'total_requests' => $leaves->count(),
                 'total_people' => $leaves->pluck('user_id')->unique()->count(),
-                'total_days' => (int) $leaves->sum('total_days'),
+                'total_days' => round((float) $leaves->sum('total_days'), 1),
             ],
             'data' => LeaveRequestResource::collection($leaves),
         ], 'OK');
@@ -139,34 +140,46 @@ class RecapController extends Controller
             ->get();
 
         $hoursByMultiplier = [];
-        $totalHours = 0.0;
+        $totalHours = 0.0;       // all worked hours (money + leave)
+        $totalMoneyHours = 0.0;  // hours compensated as money
+        $totalLeaveDays = 0.0;   // leave days credited from "ganti hari"
         $totalSessions = 0;
         /** @var array<int|string, array<string, mixed>> $employees keyed by user_id */
         $employees = [];
 
         foreach ($sessions as $session) {
-            $req = $session->requestEmployee->overtimeRequest;
-            $isHoliday = $this->overtimeService->isHoliday($req->overtime_date);
+            $pivot = $session->requestEmployee;
+            $req = $pivot->overtimeRequest;
+            // Holiday is decided per the employee's own start date when set.
+            $startAt = $pivot->planned_start_at ?? $session->clock_in_at ?? $req->overtime_date;
+            $isHoliday = $this->overtimeService->isHoliday($startAt);
             $hours = (float) $session->total_hours;
-            $tiers = $this->overtimeService->tierHours($hours, $isHoliday);
             $date = $req->overtime_date->toDateString();
+            $isLeave = $pivot->compensation_type === CompensationType::Leave;
+
+            $tiers = $isLeave ? [] : $this->overtimeService->tierHours($hours, $isHoliday);
+            $leaveDays = $isLeave ? $this->overtimeService->computeLeaveDays($hours, $isHoliday) : 0.0;
 
             foreach ($tiers as $multiplier => $tierHours) {
                 $hoursByMultiplier[$multiplier] = round(($hoursByMultiplier[$multiplier] ?? 0) + $tierHours, 2);
             }
             $totalHours += $hours;
+            $totalMoneyHours += $isLeave ? 0.0 : $hours;
+            $totalLeaveDays += $leaveDays;
             $totalSessions++;
 
             // Key by user_id; fall back to name for the (unexpected) null-user case.
-            $userId = $session->requestEmployee->user_id;
-            $key = $userId ?? 'name:'.($session->requestEmployee->user?->name ?? $session->id);
+            $userId = $pivot->user_id;
+            $key = $userId ?? 'name:'.($pivot->user?->name ?? $session->id);
 
             if (! isset($employees[$key])) {
                 $employees[$key] = [
                     'user_id' => $userId,
-                    'employee_name' => $session->requestEmployee->user?->name,
+                    'employee_name' => $pivot->user?->name,
                     'department_name' => $req->department?->name,
                     'total_hours' => 0.0,
+                    'money_hours' => 0.0,
+                    'leave_days' => 0.0,
                     'session_count' => 0,
                     'tiers' => [],
                     'dates' => [],
@@ -175,6 +188,8 @@ class RecapController extends Controller
             }
 
             $employees[$key]['total_hours'] = round($employees[$key]['total_hours'] + $hours, 2);
+            $employees[$key]['money_hours'] = round($employees[$key]['money_hours'] + ($isLeave ? 0.0 : $hours), 2);
+            $employees[$key]['leave_days'] = round($employees[$key]['leave_days'] + $leaveDays, 1);
             $employees[$key]['session_count']++;
             $employees[$key]['dates'][$date] = true;
             foreach ($tiers as $multiplier => $tierHours) {
@@ -185,7 +200,9 @@ class RecapController extends Controller
                 'overtime_date' => $date,
                 'is_holiday' => $isHoliday,
                 'total_hours' => $hours,
+                'compensation_type' => $pivot->compensation_type->value,
                 'tiers' => $tiers,
+                'leave_days' => $leaveDays,
             ];
         }
 
@@ -209,6 +226,8 @@ class RecapController extends Controller
                 'total_sessions' => $totalSessions,
                 'total_employees' => count($rows),
                 'total_hours' => round($totalHours, 2),
+                'total_money_hours' => round($totalMoneyHours, 2),
+                'total_leave_days' => round($totalLeaveDays, 1),
                 'hours_by_multiplier' => $hoursByMultiplier,
             ],
             'data' => $rows,

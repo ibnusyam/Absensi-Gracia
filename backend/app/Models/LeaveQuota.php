@@ -22,9 +22,10 @@ class LeaveQuota extends Model
     {
         return [
             'year' => 'integer',
-            'total_days' => 'integer',
-            'used_days' => 'integer',
-            'remaining_days' => 'integer',
+            // Decimal to support half-days credited from overtime "ganti hari".
+            'total_days' => 'decimal:1',
+            'used_days' => 'decimal:1',
+            'remaining_days' => 'decimal:1',
         ];
     }
 

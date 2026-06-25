@@ -1,6 +1,12 @@
 import { apiClient } from './client'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import type { OvertimeRequest, OvertimeSession, OvertimeStatus } from '@/types/overtime'
+import type {
+  CompensationType,
+  OvertimeRequest,
+  OvertimeRequestEmployee,
+  OvertimeSession,
+  OvertimeStatus,
+} from '@/types/overtime'
 
 export interface OvertimeFilters {
   status?: OvertimeStatus
@@ -15,12 +21,27 @@ export interface OvertimeFilters {
   page?: number
 }
 
+export interface CreateOvertimeEmployee {
+  user_id: number
+  /** Local datetime "YYYY-MM-DDTHH:mm" from the datetime-local inputs. */
+  planned_start_at: string
+  planned_end_at: string
+  compensation_type: CompensationType
+}
+
 export interface CreateOvertimePayload {
   overtime_date: string
-  planned_start: string
-  planned_end: string
   reason: string
-  employee_ids: number[]
+  employees: CreateOvertimeEmployee[]
+}
+
+/** Admin correction of a single employee's overtime row (partial update). */
+export interface UpdateOvertimeEmployeePayload {
+  planned_start_at?: string | null
+  planned_end_at?: string | null
+  clock_in_at?: string | null
+  clock_out_at?: string | null
+  compensation_type?: CompensationType
 }
 
 export const overtimeApi = {
@@ -38,6 +59,17 @@ export const overtimeApi = {
 
   async create(payload: CreateOvertimePayload): Promise<OvertimeRequest> {
     const { data } = await apiClient.post<ApiResponse<OvertimeRequest>>('/overtime-requests', payload)
+    return data.data
+  },
+
+  async updateEmployee(
+    employeeId: number,
+    payload: UpdateOvertimeEmployeePayload,
+  ): Promise<OvertimeRequestEmployee> {
+    const { data } = await apiClient.patch<ApiResponse<OvertimeRequestEmployee>>(
+      `/overtime-request-employees/${employeeId}`,
+      payload,
+    )
     return data.data
   },
 

@@ -158,6 +158,9 @@ export function MobileRecapPage() {
                     <p className="mt-1 text-sm text-slate-600">
                       <span className="font-semibold text-slate-800">{r.total_hours} jam</span> ·{' '}
                       {r.day_count} hari · {r.session_count} sesi
+                      {r.leave_days > 0 && (
+                        <span className="text-emerald-600"> · +{r.leave_days} hari cuti</span>
+                      )}
                     </p>
                     {Object.keys(r.tiers).length > 0 && (
                       <p className="mt-0.5 text-xs text-slate-500">
@@ -179,7 +182,12 @@ export function MobileRecapPage() {
                                 {s.is_holiday ? 'Libur' : 'Kerja'}
                               </Badge>
                             </span>
-                            <span>{s.total_hours} jam</span>
+                            <span>
+                              {s.total_hours} jam
+                              {s.compensation_type === 'leave' && s.leave_days > 0 && (
+                                <span className="text-emerald-600"> · +{s.leave_days} hari</span>
+                              )}
+                            </span>
                           </div>
                         ))}
                       </div>

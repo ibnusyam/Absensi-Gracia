@@ -18,6 +18,7 @@ class LeaveRequest extends Model
         'type',
         'start_date',
         'end_date',
+        'half_day',
         'total_days',
         'reason',
         'attachment_path',
@@ -30,7 +31,8 @@ class LeaveRequest extends Model
             'type' => LeaveType::class,
             'start_date' => 'date',
             'end_date' => 'date',
-            'total_days' => 'integer',
+            'half_day' => 'boolean',
+            'total_days' => 'decimal:1',
             'status' => LeaveStatus::class,
         ];
     }

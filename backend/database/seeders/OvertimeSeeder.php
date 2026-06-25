@@ -7,6 +7,7 @@ use App\Enums\ApprovalStage;
 use App\Enums\OvertimeStatus;
 use App\Enums\RoleSlug;
 use App\Models\ApprovalLog;
+use App\Models\LeaveQuota;
 use App\Models\OvertimeRequest;
 use App\Models\OvertimeRequestEmployee;
 use App\Models\OvertimeSession;
@@ -16,17 +17,21 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Seeds overtime requests covering every stage of the flow so the feature can be
- * inspected end-to-end. Uses the real OvertimeService so hours and the tiered
- * pay calculation (spec §3.4) are genuinely exercised, not faked.
+ * Seeds overtime requests covering every stage AND every compensation type so the
+ * feature can be inspected end-to-end. Each employee carries their own planned
+ * start/end and compensation choice (uang / hari). Completed sessions run through
+ * the real OvertimeService so hours, the tiered pay calc, and the "ganti hari"
+ * leave-credit are genuinely exercised.
  *
- * Scenarios created (for one department):
- *   A. Pending           — menunggu approval HRD.
- *   B. Disetujui HRD      — menunggu approval Direktur.
- *   C. Disetujui penuh    — sesi kosong, siap di-clock-in karyawan.
- *   D. Disetujui penuh    — satu sesi sedang berjalan (clock-in saja).
- *   E. Disetujui penuh    — selesai di hari KERJA  (tarif 1,5× / 2×).
- *   F. Disetujui penuh    — selesai di hari LIBUR  (tarif 2× / 3×).
+ * Scenarios (current month, one department):
+ *   A. Pending                       — menunggu approval HRD (waktu beda per karyawan).
+ *   B. Disetujui HRD                 — menunggu approval Direktur.
+ *   C. Disetujui penuh, sesi kosong  — campuran kompensasi uang & hari, siap clock-in.
+ *   D. Disetujui penuh, berjalan     — satu sesi sedang clock-in.
+ *   E. Selesai (HARI KERJA, uang)    — tarif 1,5× / 2×.
+ *   F. Selesai (HARI LIBUR, uang)    — tarif 2× / 3×.
+ *   G. Selesai (HARI LIBUR, hari)    — 8 jam → +2 hari cuti / karyawan.
+ *   H. Selesai (HARI KERJA, hari)    — 4 jam → +0,5 hari cuti.
  */
 class OvertimeSeeder extends Seeder
 {
@@ -50,44 +55,76 @@ class OvertimeSeeder extends Seeder
 
         $this->cleanup();
 
-        $employees = $this->employeesIn($admin->department_id);
-        $pair = $employees->take(2);          // 2 employees for batch scenarios
-        $one = $employees->take(1);           // 1 employee for the "running" scenario
+        $employees = $this->employeesIn($admin->department_id)->values();
+        $a = $employees[0];
+        $b = $employees[1];
 
         $service = app(OvertimeService::class);
 
-        // Recent weekday (for workday tier) and most recent Saturday (for holiday tier).
+        // Recent weekday (workday tier) and most recent Saturday (holiday tier), both this month.
         $workday = now($tz)->copy();
         while ($workday->isWeekend()) {
             $workday->subDay();
         }
         $holiday = now($tz)->copy()->previous(Carbon::SATURDAY);
 
-        // A. Pending — awaiting HRD.
-        $this->build($service, $admin, $pair, $workday, '17:00', '20:00', 'Kejar target rilis sprint.');
+        // A. Pending — different start/end per employee (showcases per-person times).
+        $this->build($service, $admin, $workday, 'Kejar target rilis sprint.', [
+            ['user' => $a, 'start' => '17:00', 'end' => '20:00', 'comp' => 'money'],
+            ['user' => $b, 'start' => '18:30', 'end' => '22:00', 'comp' => 'money'],
+        ]);
 
         // B. Approved by HRD — awaiting Director.
-        $reqB = $this->build($service, $admin, $pair, $workday, '18:00', '21:00', 'Maintenance server malam.');
+        $reqB = $this->build($service, $admin, $workday, 'Maintenance server malam.', [
+            ['user' => $a, 'start' => '18:00', 'end' => '21:00', 'comp' => 'money'],
+            ['user' => $b, 'start' => '18:00', 'end' => '21:00', 'comp' => 'money'],
+        ]);
         $this->stampApproval($reqB, $hrd, ApprovalStage::Hrd, OvertimeStatus::ApprovedByHrd);
 
-        // C. Fully approved, sessions still empty — ready for an employee to clock in.
-        $reqC = $this->build($service, $admin, $pair, $workday, '17:30', '20:30', 'Persiapan demo klien besok.');
+        // C. Fully approved, sessions empty — mixed compensation, ready to clock in.
+        $reqC = $this->build($service, $admin, $workday, 'Persiapan demo klien besok.', [
+            ['user' => $a, 'start' => '17:30', 'end' => '20:30', 'comp' => 'money'],
+            ['user' => $b, 'start' => '19:00', 'end' => '23:00', 'comp' => 'leave'],
+        ]);
         $this->fullyApprove($reqC, $hrd, $direktur);
 
         // D. Fully approved, one session currently running (clock-in only).
-        $reqD = $this->build($service, $admin, $one, $workday, '17:00', '19:30', 'Perbaikan bug produksi.');
+        $reqD = $this->build($service, $admin, $workday, 'Perbaikan bug produksi.', [
+            ['user' => $a, 'start' => '17:00', 'end' => '19:30', 'comp' => 'money'],
+        ]);
         $this->fullyApprove($reqD, $hrd, $direktur);
         $this->clockInOnly($reqD, 90); // started 1.5 hours ago
 
-        // E. Fully approved, completed on a WORKDAY (~2.5h → 1,5× first hour, 2× rest).
-        $reqE = $this->build($service, $admin, $pair, $workday, '17:00', '20:00', 'Stock opname akhir bulan.');
+        // E. Completed on a WORKDAY, paid (~2.5h → 1,5× first hour, 2× rest).
+        $reqE = $this->build($service, $admin, $workday, 'Stock opname akhir bulan.', [
+            ['user' => $a, 'start' => '17:00', 'end' => '19:30', 'comp' => 'money'],
+            ['user' => $b, 'start' => '17:00', 'end' => '19:30', 'comp' => 'money'],
+        ]);
         $this->fullyApprove($reqE, $hrd, $direktur);
-        $this->clockOut($service, $reqE, 2.5);
+        $this->complete($service, $reqE, 2.5);
 
-        // F. Fully approved, completed on a HOLIDAY/weekend (~9h → 2× first 8h, 3× rest).
-        $reqF = $this->build($service, $admin, $pair, $holiday, '08:00', '17:00', 'Lembur akhir pekan pemeliharaan.');
+        // F. Completed on a HOLIDAY, paid (~9h → 2× first 8h, 3× rest).
+        $reqF = $this->build($service, $admin, $holiday, 'Lembur akhir pekan pemeliharaan.', [
+            ['user' => $a, 'start' => '08:00', 'end' => '17:00', 'comp' => 'money'],
+            ['user' => $b, 'start' => '08:00', 'end' => '17:00', 'comp' => 'money'],
+        ]);
         $this->fullyApprove($reqF, $hrd, $direktur);
-        $this->clockOut($service, $reqF, 9.0);
+        $this->complete($service, $reqF, 9.0);
+
+        // G. Completed on a HOLIDAY, "ganti hari" — 8h → +2 leave days each.
+        $reqG = $this->build($service, $admin, $holiday, 'Lembur libur (ganti hari).', [
+            ['user' => $a, 'start' => '08:00', 'end' => '16:00', 'comp' => 'leave'],
+            ['user' => $b, 'start' => '08:00', 'end' => '16:00', 'comp' => 'leave'],
+        ]);
+        $this->fullyApprove($reqG, $hrd, $direktur);
+        $this->complete($service, $reqG, 8.0);
+
+        // H. Completed on a WORKDAY, "ganti hari" — 4h → +0,5 leave day.
+        $reqH = $this->build($service, $admin, $workday, 'Lembur hari kerja (ganti hari).', [
+            ['user' => $a, 'start' => '17:00', 'end' => '21:00', 'comp' => 'leave'],
+        ]);
+        $this->fullyApprove($reqH, $hrd, $direktur);
+        $this->complete($service, $reqH, 4.0);
 
         $this->command?->info("OvertimeSeeder selesai untuk departemen #{$admin->department_id} (admin: {$admin->email}).");
     }
@@ -104,22 +141,24 @@ class OvertimeSeeder extends Seeder
             ->get();
     }
 
-    /** Create a pending request (with empty sessions) via the real service. */
-    private function build(
-        OvertimeService $service,
-        User $admin,
-        $employees,
-        Carbon $date,
-        string $start,
-        string $end,
-        string $reason,
-    ): OvertimeRequest {
+    /**
+     * Create a pending request (empty sessions) via the real service.
+     *
+     * @param  array<int,array{user:User,start:string,end:string,comp:string}>  $specs
+     */
+    private function build(OvertimeService $service, User $admin, Carbon $date, string $reason, array $specs): OvertimeRequest
+    {
+        $d = $date->toDateString();
+
         return $service->create($admin, [
-            'overtime_date' => $date->toDateString(),
-            'planned_start' => $start,
-            'planned_end' => $end,
+            'overtime_date' => $d,
             'reason' => $reason,
-            'employee_ids' => $employees->pluck('id')->all(),
+            'employees' => array_map(fn (array $s) => [
+                'user_id' => $s['user']->id,
+                'planned_start_at' => "{$d} {$s['start']}",
+                'planned_end_at' => "{$d} {$s['end']}",
+                'compensation_type' => $s['comp'],
+            ], $specs),
         ]);
     }
 
@@ -160,29 +199,48 @@ class OvertimeSeeder extends Seeder
     }
 
     /**
-     * Complete all sessions of a request by setting clock-in to N hours ago, then
-     * running the real sessionClockOut so total_hours + tiered pay are computed.
+     * Complete every session of a request: anchor the actual times to each
+     * employee's planned start, set worked hours, then settle leave compensation
+     * through the real service (credits "ganti hari" leave days).
      */
-    private function clockOut(OvertimeService $service, OvertimeRequest $request, float $hours): void
+    private function complete(OvertimeService $service, OvertimeRequest $request, float $hours): void
     {
-        $request->load(['employees.user', 'employees.session']);
+        $request->load(['employees.session']);
 
-        foreach ($request->employees as $employee) {
-            $session = $employee->session;
-            if (! $session || ! $employee->user) {
+        foreach ($request->employees as $pivot) {
+            $session = $pivot->session;
+            if (! $session) {
                 continue;
             }
 
-            $session->clock_in_at = now()->subMinutes((int) round($hours * 60));
+            $start = $pivot->planned_start_at?->copy() ?? now()->subHours((int) $hours);
+            $session->clock_in_at = $start;
+            $session->clock_out_at = $start->copy()->addMinutes((int) round($hours * 60));
+            $session->total_hours = $hours;
             $session->save();
 
-            $service->sessionClockOut($session, $employee->user);
+            $service->settleLeaveCompensation($pivot->fresh(['overtimeRequest', 'session', 'user']));
         }
     }
 
-    /** Remove previously seeded overtime data so the seeder is re-runnable. */
+    /**
+     * Remove previously seeded overtime data so the seeder is re-runnable, first
+     * reversing any leave days credited so quotas don't drift across re-runs.
+     */
     private function cleanup(): void
     {
+        OvertimeRequestEmployee::where('leave_days_credited', '>', 0)
+            ->get()
+            ->each(function (OvertimeRequestEmployee $pivot) {
+                $year = ($pivot->planned_start_at ?? now())->year;
+                $quota = LeaveQuota::where('user_id', $pivot->user_id)->where('year', $year)->first();
+                if ($quota) {
+                    $quota->total_days = (float) $quota->total_days - (float) $pivot->leave_days_credited;
+                    $quota->syncRemaining();
+                    $quota->save();
+                }
+            });
+
         $morph = (new OvertimeRequest)->getMorphClass();
         ApprovalLog::where('approvable_type', $morph)->delete();
 

@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Overtime;
 
+use App\Enums\CompensationType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreOvertimeRequest extends FormRequest
 {
@@ -15,11 +17,14 @@ class StoreOvertimeRequest extends FormRequest
     {
         return [
             'overtime_date' => ['required', 'date'],
-            'planned_start' => ['required', 'date_format:H:i'],
-            'planned_end' => ['required', 'date_format:H:i', 'after:planned_start'],
             'reason' => ['required', 'string', 'max:1000'],
-            'employee_ids' => ['required', 'array', 'min:1'],
-            'employee_ids.*' => ['integer', 'distinct', 'exists:users,id'],
+            // One request, many employees — each with their own planned schedule
+            // (full datetime, may differ per person) and compensation choice.
+            'employees' => ['required', 'array', 'min:1'],
+            'employees.*.user_id' => ['required', 'integer', 'distinct', 'exists:users,id'],
+            'employees.*.planned_start_at' => ['required', 'date'],
+            'employees.*.planned_end_at' => ['required', 'date', 'after:employees.*.planned_start_at'],
+            'employees.*.compensation_type' => ['required', Rule::enum(CompensationType::class)],
         ];
     }
 }

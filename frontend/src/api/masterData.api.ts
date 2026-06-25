@@ -66,6 +66,7 @@ export interface UserFormPayload {
   no_jamsostek?: string | null
   rekening_bca?: string | null
   rekening_bni?: string | null
+  jenjang?: 'karyawan' | 'outsourcing' | null
   status_karir?: string | null
   tanggal_spk?: string | null
   kartu_pensiun?: string | null
