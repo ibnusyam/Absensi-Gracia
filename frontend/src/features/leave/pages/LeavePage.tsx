@@ -16,6 +16,7 @@ import {
   useCancelLeave,
 } from '@/features/leave/hooks/useLeave'
 import { useCurrentUser } from '@/features/auth/hooks/useAuth'
+import { QuotaHistory } from '@/features/leave/components/QuotaHistory'
 import { leaveTypeOptions, leaveTypeNote } from '@/features/leave/leaveOptions'
 import { requestStatusVariant } from '@/lib/statusBadge'
 import { formatDate } from '@/lib/utils'
@@ -58,7 +59,7 @@ export function LeavePage() {
   return (
     <div>
       <PageHeader
-        title="Cuti"
+        title="Cuti/Ganti Hari"
         description="Ajukan dan pantau pengajuan cuti Anda."
         action={
           <Button onClick={() => setShowForm((v) => !v)}>
@@ -81,6 +82,12 @@ export function LeavePage() {
                 dari {quota.data?.total_days ?? 0} hari ({quota.data?.used_days ?? 0} terpakai)
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="sm:col-span-2">
+          <CardContent className="p-4">
+            <QuotaHistory />
           </CardContent>
         </Card>
       </div>

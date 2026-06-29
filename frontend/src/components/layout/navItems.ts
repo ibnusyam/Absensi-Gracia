@@ -42,7 +42,7 @@ export const navGroups: NavGroup[] = [
     title: 'Mandiri',
     items: [
       { label: 'Absensi', path: routePaths.attendance, icon: CalendarCheck },
-      { label: 'Cuti', path: routePaths.leave, icon: Plane },
+      { label: 'Cuti/Ganti Hari', path: routePaths.leave, icon: Plane },
       { label: 'Lembur', path: routePaths.overtime, icon: Clock },
     ],
   },

@@ -9,6 +9,7 @@ use App\Enums\LeaveType;
 use App\Enums\RoleSlug;
 use App\Models\ApprovalLog;
 use App\Models\LeaveQuota;
+use App\Models\LeaveQuotaLedger;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Services\LeaveService;
@@ -131,6 +132,7 @@ class LeaveSeeder extends Seeder
     private function cleanup(): void
     {
         ApprovalLog::where('approvable_type', (new LeaveRequest)->getMorphClass())->delete();
+        LeaveQuotaLedger::where('source_type', (new LeaveRequest)->getMorphClass())->delete();
         LeaveRequest::query()->delete();
         LeaveQuota::query()->update(['used_days' => 0, 'remaining_days' => DB::raw('total_days')]);
     }

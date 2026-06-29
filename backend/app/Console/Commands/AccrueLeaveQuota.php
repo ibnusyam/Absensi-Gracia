@@ -76,6 +76,11 @@ class AccrueLeaveQuota extends Command
                 $quota->total_days += $days;
                 $quota->syncRemaining();
                 $quota->save();
+
+                $quota->logChange(
+                    $days,
+                    "Akrual kuota cuti (siklus {$start->format('d/m/Y')} s/d {$end->format('d/m/Y')})",
+                );
             }
         });
 

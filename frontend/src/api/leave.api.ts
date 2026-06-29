@@ -1,6 +1,12 @@
 import { apiClient } from './client'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import type { LeaveQuota, LeaveRequest, LeaveStatus, LeaveType } from '@/types/leave'
+import type {
+  LeaveQuota,
+  LeaveQuotaLedgerEntry,
+  LeaveRequest,
+  LeaveStatus,
+  LeaveType,
+} from '@/types/leave'
 
 export interface LeaveFilters {
   status?: LeaveStatus
@@ -59,6 +65,13 @@ export const leaveApi = {
 
   async quota(): Promise<LeaveQuota> {
     const { data } = await apiClient.get<ApiResponse<LeaveQuota>>('/leave-quota')
+    return data.data
+  },
+
+  async quotaLedger(): Promise<LeaveQuotaLedgerEntry[]> {
+    const { data } = await apiClient.get<ApiResponse<LeaveQuotaLedgerEntry[]>>(
+      '/leave-quota/ledger',
+    )
     return data.data
   },
 }

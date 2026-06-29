@@ -243,6 +243,7 @@ class OvertimeSeeder extends Seeder
 
         $morph = (new OvertimeRequest)->getMorphClass();
         ApprovalLog::where('approvable_type', $morph)->delete();
+        \App\Models\LeaveQuotaLedger::where('source_type', $morph)->delete();
 
         OvertimeSession::query()->delete();
         OvertimeRequestEmployee::query()->delete();

@@ -32,3 +32,13 @@ export interface LeaveQuota {
   used_days: number
   remaining_days: number
 }
+
+export interface LeaveQuotaLedgerEntry {
+  id: number
+  /** Signed change in available days: positive added, negative used. */
+  delta: number
+  /** Remaining balance right after this change. */
+  balance: number
+  reason: string
+  created_at: string | null
+}

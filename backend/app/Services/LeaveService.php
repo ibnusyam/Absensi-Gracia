@@ -122,6 +122,11 @@ class LeaveService
         $quota->used_days += $leave->total_days;
         $quota->syncRemaining();
         $quota->save();
+
+        $start = Carbon::parse($leave->start_date)->format('d/m/Y');
+        $end = Carbon::parse($leave->end_date)->format('d/m/Y');
+        $range = $start === $end ? $start : "{$start} s/d {$end}";
+        $quota->logChange(-(float) $leave->total_days, "Cuti disetujui ({$range})", $leave);
     }
 
     /**

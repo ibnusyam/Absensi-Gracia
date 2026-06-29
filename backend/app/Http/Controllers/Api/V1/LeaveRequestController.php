@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Enums\LeaveStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Leave\StoreLeaveRequest;
+use App\Http\Resources\LeaveQuotaLedgerResource;
 use App\Http\Resources\LeaveQuotaResource;
 use App\Http\Resources\LeaveRequestResource;
 use App\Models\LeaveRequest;
@@ -96,6 +97,17 @@ class LeaveRequestController extends Controller
         $quota = $this->leaveService->quotaFor($request->user(), $year);
 
         return $this->respondSuccess(new LeaveQuotaResource($quota), 'OK');
+    }
+
+    /** History of additions/deductions for the caller's current-year quota. */
+    public function quotaLedger(Request $request): JsonResponse
+    {
+        $year = (int) now()->setTimezone(config('services.display_timezone'))->year;
+        $quota = $this->leaveService->quotaFor($request->user(), $year);
+
+        $entries = $quota->ledgers()->limit(100)->get();
+
+        return $this->respondSuccess(LeaveQuotaLedgerResource::collection($entries), 'OK');
     }
 
     private function authorizeView(Request $request, LeaveRequest $leave): void

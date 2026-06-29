@@ -159,6 +159,12 @@ class OvertimeService
             $quota->syncRemaining();
             $quota->save();
 
+            $tanggal = $start->format('d/m/Y');
+            $reason = $delta >= 0
+                ? "Kompensasi lembur ganti hari ({$tanggal})"
+                : "Penyesuaian kompensasi lembur ganti hari ({$tanggal})";
+            $quota->logChange($delta, $reason, $pivot->overtimeRequest);
+
             $pivot->leave_days_credited = $target;
             $pivot->save();
         });

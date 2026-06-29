@@ -53,6 +53,7 @@ Route::prefix('v1')->group(function () {
         Route::get('leave-requests/{leaveRequest}', [LeaveRequestController::class, 'show']);
         Route::delete('leave-requests/{leaveRequest}', [LeaveRequestController::class, 'destroy']);
         Route::get('leave-quota', [LeaveRequestController::class, 'quota']);
+        Route::get('leave-quota/ledger', [LeaveRequestController::class, 'quotaLedger']);
 
         // Monthly recap (approved leave + completed overtime)
         Route::middleware('role:super-admin,hrd,direktur')->group(function () {

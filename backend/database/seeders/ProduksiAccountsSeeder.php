@@ -52,10 +52,12 @@ class ProduksiAccountsSeeder extends Seeder
         // Jatah cuti tahun berjalan supaya pengajuan cuti berfungsi.
         $year = now()->setTimezone(config('services.display_timezone'))->year;
         $users->each(function (User $user) use ($year) {
-            LeaveQuota::updateOrCreate(
+            $quota = LeaveQuota::updateOrCreate(
                 ['user_id' => $user->id, 'year' => $year],
                 ['total_days' => 12, 'used_days' => 0, 'remaining_days' => 12],
             );
+            $quota->ledgers()->delete();
+            $quota->logChange(12, "Kuota awal tahun {$year}");
         });
 
         $this->command->info('Akun Produksi siap: rini@gracia.co.id + karyawan1..5@gracia.co.id (password: "password").');

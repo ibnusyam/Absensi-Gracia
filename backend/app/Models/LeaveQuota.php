@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeaveQuota extends Model
 {
@@ -34,9 +35,35 @@ class LeaveQuota extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function ledgers(): HasMany
+    {
+        return $this->hasMany(LeaveQuotaLedger::class)->latest('id');
+    }
+
     /** Recompute remaining_days from total/used. */
     public function syncRemaining(): void
     {
         $this->remaining_days = $this->total_days - $this->used_days;
+    }
+
+    /**
+     * Record a history line for a change already applied & saved to this quota.
+     * $delta is the signed change in remaining (available) days; the current
+     * remaining_days is captured as the running balance.
+     */
+    public function logChange(
+        float $delta,
+        string $reason,
+        ?Model $source = null,
+        ?int $actorId = null,
+    ): LeaveQuotaLedger {
+        return $this->ledgers()->create([
+            'delta' => round($delta, 1),
+            'balance' => (float) $this->remaining_days,
+            'reason' => $reason,
+            'source_type' => $source?->getMorphClass(),
+            'source_id' => $source?->getKey(),
+            'created_by' => $actorId,
+        ]);
     }
 }

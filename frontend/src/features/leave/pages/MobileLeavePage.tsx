@@ -15,6 +15,7 @@ import {
   useCancelLeave,
 } from '@/features/leave/hooks/useLeave'
 import { useCurrentUser } from '@/features/auth/hooks/useAuth'
+import { QuotaHistory } from '@/features/leave/components/QuotaHistory'
 import { leaveTypeOptions, leaveTypeNote } from '@/features/leave/leaveOptions'
 import { requestStatusVariant } from '@/lib/statusBadge'
 import { formatDate } from '@/lib/utils'
@@ -52,7 +53,7 @@ export function MobileLeavePage() {
   return (
     <div className="pb-8">
       <MobileHeader
-        title="Cuti"
+        title="Cuti/Ganti Hari"
         action={
           <button onClick={() => setShowForm((v) => !v)} aria-label="Ajukan cuti" className="p-1">
             {showForm ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
@@ -72,6 +73,12 @@ export function MobileLeavePage() {
             </p>
           </div>
         </div>
+
+        {!showForm && (
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <QuotaHistory />
+          </div>
+        )}
 
         {showForm && (
           <form onSubmit={submit} className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">

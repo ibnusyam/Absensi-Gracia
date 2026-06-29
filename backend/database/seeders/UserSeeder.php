@@ -112,10 +112,15 @@ class UserSeeder extends Seeder
         // Leave quotas for the current year for everyone.
         $year = now()->setTimezone(config('services.display_timezone'))->year;
         User::all()->each(function (User $user) use ($year) {
-            LeaveQuota::updateOrCreate(
+            $quota = LeaveQuota::updateOrCreate(
                 ['user_id' => $user->id, 'year' => $year],
                 ['total_days' => 12, 'used_days' => 0, 'remaining_days' => 12],
             );
+            // Reset history then record the opening balance so the Riwayat Kuota
+            // shows where the 12 days came from. Runs before Leave/Overtime
+            // seeders, which append their own debit/credit lines.
+            $quota->ledgers()->delete();
+            $quota->logChange(12, "Kuota awal tahun {$year}");
         });
     }
 

@@ -25,6 +25,13 @@ export function useLeaveQuota() {
   })
 }
 
+export function useLeaveQuotaLedger() {
+  return useQuery({
+    queryKey: ['leave', 'quota', 'ledger'],
+    queryFn: () => leaveApi.quotaLedger(),
+  })
+}
+
 export function useCreateLeave() {
   const qc = useQueryClient()
   return useMutation({
