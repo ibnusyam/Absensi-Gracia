@@ -8,7 +8,6 @@ use App\Models\Attendance;
 use App\Models\HolidayCalendar;
 use App\Models\User;
 use App\Models\WorkLocation;
-use App\Models\WorkSchedule;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
@@ -18,11 +17,6 @@ class AttendanceSeeder extends Seeder
     {
         $tz = config('services.display_timezone');
         $location = WorkLocation::active()->first();
-
-        // Mirror the real lateness rule so seeded data matches the schedule.
-        $schedule = WorkSchedule::first();
-        $deadline = $schedule?->clock_in_deadline ?? '07:30:00';
-        $tolerance = (int) ($schedule?->late_tolerance_minutes ?? 0);
 
         $users = User::whereHas('role', fn ($q) => $q->whereIn('slug', [
             RoleSlug::Karyawan->value,
@@ -56,21 +50,9 @@ class AttendanceSeeder extends Seeder
                     continue;
                 }
 
-                $late = random_int(1, 100) <= 25;
-
-                $deadlineLocal = Carbon::parse($day->toDateString().' '.$deadline, $tz);
-                $threshold = $deadlineLocal->copy()->addMinutes($tolerance);
-
-                if ($late) {
-                    // Clock in after the tolerance threshold -> Terlambat.
-                    $clockInLocal = $threshold->copy()->addMinutes(random_int(1, 80));
-                    $lateMinutes = (int) $deadlineLocal->diffInMinutes($clockInLocal);
-                } else {
-                    // Clock in up to 40 minutes before the deadline -> Hadir.
-                    $clockInLocal = $deadlineLocal->copy()->subMinutes(random_int(0, 40));
-                    $lateMinutes = null;
-                }
-
+                // Clock in some time in the morning; everyone who shows up is Hadir.
+                $clockInLocal = Carbon::parse($day->toDateString().' 07:00:00', $tz)
+                    ->addMinutes(random_int(0, 90));
                 $clockIn = $clockInLocal->copy()->setTimezone('UTC');
                 $clockOut = (clone $clockIn)->addHours(8)->addMinutes(30 + random_int(0, 30));
 
@@ -82,8 +64,7 @@ class AttendanceSeeder extends Seeder
                         'location_id' => $location?->id,
                         'clock_in_lat' => $location?->latitude,
                         'clock_in_lng' => $location?->longitude,
-                        'status' => $late ? AttendanceStatus::Late : AttendanceStatus::Present,
-                        'late_minutes' => $lateMinutes ? (int) $lateMinutes : null,
+                        'status' => AttendanceStatus::Present,
                     ],
                 );
             }

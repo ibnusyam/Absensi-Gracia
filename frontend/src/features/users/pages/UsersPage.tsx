@@ -88,7 +88,7 @@ export function UsersPage() {
                     <th className="px-4 py-3 font-medium">NIK</th>
                     <th className="px-4 py-3 font-medium">Email</th>
                     <th className="px-4 py-3 font-medium">Bagian</th>
-                    <th className="px-4 py-3 font-medium">Jenjang</th>
+                    <th className="px-4 py-3 font-medium">Status Karir</th>
                     <th className="px-4 py-3 font-medium">Role</th>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium"></th>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\Jenjang;
 use App\Http\Resources\Concerns\FormatsTimestamps;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -13,11 +14,14 @@ class LeaveRequestResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $isOutsourcing = $this->user?->jenjang === Jenjang::Outsourcing;
+
         return [
             'id' => $this->id,
             'user_id' => $this->user_id,
             'type' => $this->type->value,
             'type_label' => $this->type->label(),
+            'cuts_salary' => $this->type->cutsSalary($isOutsourcing),
             'start_date' => $this->displayDate($this->start_date),
             'end_date' => $this->displayDate($this->end_date),
             'half_day' => (bool) $this->half_day,

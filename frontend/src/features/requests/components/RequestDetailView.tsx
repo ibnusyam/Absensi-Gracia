@@ -6,7 +6,7 @@ import { useOvertimeDetail } from '@/features/overtime/hooks/useOvertime'
 import { requestStatusVariant } from '@/lib/statusBadge'
 import { formatDate, formatDateTime, formatTime } from '@/lib/utils'
 import type { LeaveStatus } from '@/types/leave'
-import type { OvertimeStatus } from '@/types/overtime'
+import type { OvertimeRequestEmployee, OvertimeStatus } from '@/types/overtime'
 import { ApprovalTimeline } from './ApprovalTimeline'
 
 export type RequestKind = 'leave' | 'overtime'
@@ -27,6 +27,63 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-sm font-medium text-slate-800">{value}</p>
+    </div>
+  )
+}
+
+/** One labelled selfie thumbnail (clock-in or clock-out) for an overtime session. */
+function PhotoThumb({ url, label, time }: { url: string | null; label: string; time: string | null }) {
+  return (
+    <div className="text-center">
+      <p className="mb-1 text-[11px] text-muted-foreground">
+        {label}
+        {time ? ` · ${time}` : ''}
+      </p>
+      {url ? (
+        <a href={url} target="_blank" rel="noreferrer">
+          <img src={url} alt={label} className="h-20 w-20 rounded-md object-cover" />
+        </a>
+      ) : (
+        <div className="flex h-20 w-20 items-center justify-center rounded-md border border-dashed text-[10px] text-slate-400">
+          Tidak ada
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Compensation breakdown for a completed overtime session: leave-day credit for
+ * "ganti hari", or the money pay tiers (1.5×/2×/3×) for "ganti uang".
+ */
+function CompensationDetail({ emp }: { emp: OvertimeRequestEmployee }) {
+  if (emp.compensation_type === 'leave') {
+    return (
+      <p className="text-xs">
+        <span className="text-muted-foreground">Kompensasi: </span>
+        <span className="font-medium text-emerald-700">
+          Ganti hari · {emp.leave_days_credited} hari cuti
+        </span>
+      </p>
+    )
+  }
+  if (emp.pay_tiers.length === 0) return null
+  return (
+    <div className="text-xs">
+      <p className="text-muted-foreground">
+        Kompensasi uang{emp.is_holiday ? ' · hari libur (2×/3×)' : ' · hari kerja (1.5×/2×)'}:
+      </p>
+      <ul className="mt-0.5 space-y-0.5">
+        {emp.pay_tiers.map((t) => (
+          <li key={t.multiplier} className="text-slate-700">
+            {t.hours} jam × {t.multiplier}× ={' '}
+            <span className="font-medium">{Math.round(t.hours * t.multiplier * 100) / 100} jam upah</span>
+          </li>
+        ))}
+      </ul>
+      {emp.weighted_hours != null && (
+        <p className="mt-0.5 font-medium text-slate-800">Total setara {emp.weighted_hours} jam upah</p>
+      )}
     </div>
   )
 }
@@ -66,6 +123,16 @@ export function RequestDetailView({ kind, id }: { kind: RequestKind; id: number 
               <Field label="Jumlah hari" value={`${l.total_days} hari`} />
               <Field label="Mulai" value={formatDate(l.start_date)} />
               <Field label="Selesai" value={formatDate(l.end_date)} />
+              <Field
+                label="Status gaji"
+                value={
+                  l.cuts_salary ? (
+                    <span className="text-amber-600">Potong gaji</span>
+                  ) : (
+                    'Tidak potong gaji'
+                  )
+                }
+              />
             </div>
             <Field label="Alasan" value={l.reason || '-'} />
             {l.attachment_url && (
@@ -73,7 +140,7 @@ export function RequestDetailView({ kind, id }: { kind: RequestKind; id: number 
                 href={l.attachment_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-block text-sm font-medium text-sky-600 hover:underline"
+                className="inline-block text-sm font-medium text-violet-700 hover:underline"
               >
                 Lihat lampiran
               </a>
@@ -128,6 +195,26 @@ export function RequestDetailView({ kind, id }: { kind: RequestKind; id: number 
                       <span className="text-xs text-muted-foreground">
                         Rencana {formatDateTime(emp.planned_start_at)} – {formatDateTime(emp.planned_end_at)}
                       </span>
+                      {emp.session &&
+                        (emp.session.selfie_url || emp.session.selfie_out_url || emp.session.clock_out_at) && (
+                          <div className="mt-2 space-y-2 rounded-md bg-slate-50 p-2">
+                            {(emp.session.selfie_url || emp.session.selfie_out_url) && (
+                              <div className="flex gap-3">
+                                <PhotoThumb
+                                  url={emp.session.selfie_url}
+                                  label="Clock In"
+                                  time={formatTime(emp.session.clock_in_at)}
+                                />
+                                <PhotoThumb
+                                  url={emp.session.selfie_out_url}
+                                  label="Clock Out"
+                                  time={formatTime(emp.session.clock_out_at)}
+                                />
+                              </div>
+                            )}
+                            {emp.session.clock_out_at && <CompensationDetail emp={emp} />}
+                          </div>
+                        )}
                     </div>
                     {emp.session?.clock_out_at ? (
                       <span className="text-right text-xs text-muted-foreground">

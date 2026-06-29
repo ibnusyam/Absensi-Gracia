@@ -15,16 +15,11 @@ import {
   useCreateLeave,
   useCancelLeave,
 } from '@/features/leave/hooks/useLeave'
+import { useCurrentUser } from '@/features/auth/hooks/useAuth'
+import { leaveTypeOptions, leaveTypeNote } from '@/features/leave/leaveOptions'
 import { requestStatusVariant } from '@/lib/statusBadge'
 import { formatDate } from '@/lib/utils'
 import type { LeaveType } from '@/types/leave'
-
-const leaveTypeOptions: { value: LeaveType; label: string }[] = [
-  { value: 'annual', label: 'Cuti Tahunan' },
-  { value: 'sick', label: 'Sakit' },
-  { value: 'emergency', label: 'Darurat' },
-  { value: 'unpaid', label: 'Tanpa Gaji' },
-]
 
 const emptyForm = {
   type: 'annual' as LeaveType,
@@ -39,6 +34,8 @@ export function LeavePage() {
   const list = useLeaveList({ per_page: 20 })
   const createLeave = useCreateLeave()
   const cancelLeave = useCancelLeave()
+  const currentUser = useCurrentUser()
+  const isOutsourcing = currentUser?.jenjang === 'outsourcing'
 
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -108,6 +105,14 @@ export function LeavePage() {
                     </option>
                   ))}
                 </Select>
+                {(() => {
+                  const note = leaveTypeNote(form.type, isOutsourcing)
+                  return (
+                    <p className={`text-xs ${note.warn ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                      {note.text}
+                    </p>
+                  )
+                })()}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="attachment">Lampiran (opsional)</Label>

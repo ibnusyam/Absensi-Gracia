@@ -13,10 +13,10 @@ interface ApprovalTimelineProps {
   pendingLabel?: string | null
 }
 
-type Tone = 'sky' | 'green' | 'red' | 'muted'
+type Tone = 'brand' | 'green' | 'red' | 'muted'
 
 const TONE: Record<Tone, { ring: string; icon: string }> = {
-  sky: { ring: 'border-sky-500 bg-sky-50 text-sky-600', icon: 'text-sky-600' },
+  brand: { ring: 'border-violet-700 bg-violet-50 text-violet-700', icon: 'text-violet-700' },
   green: { ring: 'border-emerald-500 bg-emerald-50 text-emerald-600', icon: 'text-emerald-600' },
   red: { ring: 'border-red-500 bg-red-50 text-red-600', icon: 'text-red-600' },
   muted: { ring: 'border-slate-300 bg-slate-50 text-slate-400', icon: 'text-slate-400' },
@@ -71,7 +71,7 @@ export function ApprovalTimeline({ submittedAt, submittedBy, logs, pendingLabel 
   return (
     <ol className="m-0 list-none p-0">
       <Node
-        tone="sky"
+        tone="brand"
         icon={<FileText className="h-4 w-4" />}
         title="Diajukan"
         meta={[submittedBy ? `oleh ${submittedBy}` : null, formatDateTime(submittedAt)]

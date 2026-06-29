@@ -42,7 +42,6 @@ export function AttendanceReportPage() {
       Masuk: formatTime(r.attendance?.clock_in_at),
       Keluar: formatTime(r.attendance?.clock_out_at),
       'Jam Kerja': formatWorkDuration(r.attendance?.clock_in_at, r.attendance?.clock_out_at),
-      Keterlambatan: r.attendance?.late_minutes ? `${r.attendance.late_minutes} menit` : '-',
     }))
     exportToXlsx(`laporan-absensi-${date}`, 'Laporan Absensi', data)
   }

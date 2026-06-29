@@ -76,7 +76,7 @@ export function MobileUsersPage() {
 
         {users.isLoading ? (
           <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : users.data?.data.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">Tidak ada karyawan ditemukan.</p>
@@ -91,7 +91,7 @@ export function MobileUsersPage() {
               {u.avatar_url ? (
                 <img src={u.avatar_url} alt={u.name} className="h-11 w-11 rounded-full object-cover" />
               ) : (
-                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-100 text-sm font-bold text-sky-600">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-violet-100 text-sm font-bold text-violet-700">
                   {initials(u.name)}
                 </div>
               )}

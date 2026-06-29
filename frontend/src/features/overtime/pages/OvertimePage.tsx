@@ -13,7 +13,7 @@ import { Spinner, PageLoader } from '@/components/ui/spinner'
 import {
   useOvertimeList,
   useCreateOvertime,
-  useOvertimeSessionClock,
+  useOvertimeClockCapture,
 } from '@/features/overtime/hooks/useOvertime'
 import { useUsers } from '@/features/users/hooks/useUsers'
 import { useCurrentUser, useHasRole } from '@/features/auth/hooks/useAuth'
@@ -37,13 +37,17 @@ function defaultEnd(date: string): string {
 }
 
 function SessionControl({ employee, currentUserId }: { employee: OvertimeRequestEmployee; currentUserId?: number }) {
-  const { clockIn, clockOut } = useOvertimeSessionClock()
+  const { fileRef, onChange, trigger, busy } = useOvertimeClockCapture()
   const session = employee.session
   const isMine = employee.user_id === currentUserId
 
   if (!session) {
     return <Badge variant="muted">Menunggu</Badge>
   }
+
+  const camera = (
+    <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={onChange} />
+  )
 
   if (session.clock_out_at) {
     return (
@@ -59,23 +63,24 @@ function SessionControl({ employee, currentUserId }: { employee: OvertimeRequest
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">Mulai {formatTime(session.clock_in_at)}</span>
         {isMine && (
-          <Button
-            size="sm"
-            variant="success"
-            disabled={clockOut.isPending}
-            onClick={() => clockOut.mutate(session.id)}
-          >
-            <LogOut className="h-4 w-4" /> Selesai
-          </Button>
+          <>
+            {camera}
+            <Button size="sm" variant="success" disabled={busy} onClick={() => trigger('out', session.id)}>
+              <LogOut className="h-4 w-4" /> Selesai
+            </Button>
+          </>
         )}
       </div>
     )
   }
 
   return isMine ? (
-    <Button size="sm" disabled={clockIn.isPending} onClick={() => clockIn.mutate(session.id)}>
-      <LogIn className="h-4 w-4" /> Mulai
-    </Button>
+    <>
+      {camera}
+      <Button size="sm" disabled={busy} onClick={() => trigger('in', session.id)}>
+        <LogIn className="h-4 w-4" /> Mulai
+      </Button>
+    </>
   ) : (
     <Badge variant="muted">Belum mulai</Badge>
   )

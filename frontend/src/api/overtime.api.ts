@@ -44,6 +44,22 @@ export interface UpdateOvertimeEmployeePayload {
   compensation_type?: CompensationType
 }
 
+/** Clock in/out an overtime session with selfie + GPS (mirrors attendance). */
+export interface OvertimeSessionClockPayload {
+  sessionId: number
+  latitude: number
+  longitude: number
+  selfie?: File | null
+}
+
+function buildSessionForm(payload: OvertimeSessionClockPayload): FormData {
+  const form = new FormData()
+  form.append('latitude', String(payload.latitude))
+  form.append('longitude', String(payload.longitude))
+  if (payload.selfie) form.append('selfie', payload.selfie)
+  return form
+}
+
 export const overtimeApi = {
   async list(filters: OvertimeFilters = {}): Promise<PaginatedResponse<OvertimeRequest>> {
     const { data } = await apiClient.get<PaginatedResponse<OvertimeRequest>>('/overtime-requests', {
@@ -73,16 +89,18 @@ export const overtimeApi = {
     return data.data
   },
 
-  async sessionClockIn(sessionId: number): Promise<OvertimeSession> {
+  async sessionClockIn(payload: OvertimeSessionClockPayload): Promise<OvertimeSession> {
     const { data } = await apiClient.post<ApiResponse<OvertimeSession>>(
-      `/overtime-sessions/${sessionId}/clock-in`,
+      `/overtime-sessions/${payload.sessionId}/clock-in`,
+      buildSessionForm(payload),
     )
     return data.data
   },
 
-  async sessionClockOut(sessionId: number): Promise<OvertimeSession> {
+  async sessionClockOut(payload: OvertimeSessionClockPayload): Promise<OvertimeSession> {
     const { data } = await apiClient.post<ApiResponse<OvertimeSession>>(
-      `/overtime-sessions/${sessionId}/clock-out`,
+      `/overtime-sessions/${payload.sessionId}/clock-out`,
+      buildSessionForm(payload),
     )
     return data.data
   },

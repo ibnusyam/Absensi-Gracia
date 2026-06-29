@@ -21,14 +21,38 @@ class OvertimeSessionController extends Controller
 
     public function clockIn(Request $request, OvertimeSession $overtimeSession): JsonResponse
     {
-        $session = $this->overtimeService->sessionClockIn($overtimeSession, $request->user());
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric'],
+            'longitude' => ['required', 'numeric'],
+            'selfie' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $session = $this->overtimeService->sessionClockIn(
+            $overtimeSession,
+            $request->user(),
+            (float) $validated['latitude'],
+            (float) $validated['longitude'],
+            $request->file('selfie'),
+        );
 
         return $this->respondSuccess(new OvertimeSessionResource($session), 'Clock-in lembur berhasil.');
     }
 
     public function clockOut(Request $request, OvertimeSession $overtimeSession): JsonResponse
     {
-        $session = $this->overtimeService->sessionClockOut($overtimeSession, $request->user());
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric'],
+            'longitude' => ['required', 'numeric'],
+            'selfie' => ['required', 'image', 'max:5120'],
+        ]);
+
+        $session = $this->overtimeService->sessionClockOut(
+            $overtimeSession,
+            $request->user(),
+            (float) $validated['latitude'],
+            (float) $validated['longitude'],
+            $request->file('selfie'),
+        );
 
         return $this->respondSuccess(new OvertimeSessionResource($session), 'Clock-out lembur berhasil.');
     }

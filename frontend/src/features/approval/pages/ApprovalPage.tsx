@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Check, CheckSquare, Clock, Plane, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Check, CheckSquare, Clock, Eye, Plane, X } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { PageLoader } from '@/components/ui/spinner'
 import { usePendingApprovals, useApprovalAction } from '@/features/approval/hooks/useApproval'
 import { requestStatusVariant } from '@/lib/statusBadge'
+import { requestLeaveDetailPath, requestOvertimeDetailPath } from '@/routes/routePaths'
 import { formatDate } from '@/lib/utils'
 
 type ApprovalType = 'overtime' | 'leave'
@@ -43,6 +45,7 @@ function ApprovalActions({ type, id }: { type: ApprovalType; id: number }) {
 
 export function ApprovalPage() {
   const { data, isLoading } = usePendingApprovals()
+  const navigate = useNavigate()
 
   const overtime = data?.overtime ?? []
   const leave = data?.leave ?? []
@@ -82,7 +85,16 @@ export function ApprovalPage() {
                         {formatDate(o.overtime_date)}
                         {o.department && ` · ${o.department.name}`}
                       </span>
-                      <Badge variant={requestStatusVariant(o.status)}>{o.status_label}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={requestStatusVariant(o.status)}>{o.status_label}</Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(requestOvertimeDetailPath(o.id))}
+                        >
+                          <Eye className="h-4 w-4" /> Detail
+                        </Button>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -111,7 +123,16 @@ export function ApprovalPage() {
                       <span>
                         {l.type_label} · {formatDate(l.start_date)}–{formatDate(l.end_date)} ({l.total_days} hari)
                       </span>
-                      <Badge variant={requestStatusVariant(l.status)}>{l.status_label}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={requestStatusVariant(l.status)}>{l.status_label}</Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(requestLeaveDetailPath(l.id))}
+                        >
+                          <Eye className="h-4 w-4" /> Detail
+                        </Button>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">

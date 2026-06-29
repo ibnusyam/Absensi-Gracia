@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Overtime\StoreOvertimeRequest;
 use App\Http\Requests\Overtime\UpdateOvertimeEmployeeRequest;
+use App\Enums\CompensationType;
 use App\Enums\OvertimeStatus;
 use App\Http\Resources\OvertimeRequestEmployeeResource;
 use App\Http\Resources\OvertimeRequestResource;
@@ -77,6 +78,22 @@ class OvertimeRequestController extends Controller
             'employees.session',
             'approvalLogs.approver',
         ]);
+
+        // Annotate each employee with their money-compensation pay tiers (1.5×/2×/3×)
+        // so the detail view can show the breakdown. Leave-type rows instead rely on
+        // leave_days_credited. Holiday status is the same for every employee here.
+        $isHoliday = $this->overtimeService->isHoliday($overtimeRequest->overtime_date);
+        foreach ($overtimeRequest->employees as $pivot) {
+            $hours = $pivot->session?->total_hours;
+            $isMoney = $pivot->compensation_type === CompensationType::Money;
+            $pivot->setAttribute('is_holiday', $isHoliday);
+            $pivot->setAttribute(
+                'pay_tiers',
+                $isMoney && $hours
+                    ? $this->overtimeService->tierHours((float) $hours, $isHoliday)
+                    : [],
+            );
+        }
 
         return $this->respondSuccess(new OvertimeRequestResource($overtimeRequest), 'OK');
     }

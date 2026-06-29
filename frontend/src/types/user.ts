@@ -51,7 +51,6 @@ export interface User {
   rekening_bni?: string | null
   jenjang?: 'karyawan' | 'outsourcing' | null
   jenjang_label?: string | null
-  status_karir?: string | null
   tanggal_spk?: string | null
   kartu_pensiun?: string | null
   kode_jabatan?: string | null

@@ -168,7 +168,6 @@ export function AttendancePage() {
                     <th className="py-2 pr-4 font-medium">Tanggal</th>
                     <th className="py-2 pr-4 font-medium">Masuk</th>
                     <th className="py-2 pr-4 font-medium">Keluar</th>
-                    <th className="py-2 pr-4 font-medium">Telat</th>
                     <th className="py-2 font-medium">Status</th>
                   </tr>
                 </thead>
@@ -178,7 +177,6 @@ export function AttendancePage() {
                       <td className="py-2 pr-4">{formatDate(a.date)}</td>
                       <td className="py-2 pr-4">{formatTime(a.clock_in_at)}</td>
                       <td className="py-2 pr-4">{formatTime(a.clock_out_at)}</td>
-                      <td className="py-2 pr-4">{a.late_minutes ? `${a.late_minutes} mnt` : '-'}</td>
                       <td className="py-2">
                         <Badge variant={attendanceBadgeVariant(a.status)}>{a.status_label}</Badge>
                       </td>
@@ -186,7 +184,7 @@ export function AttendancePage() {
                   ))}
                   {list.data?.data.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                      <td colSpan={4} className="py-6 text-center text-muted-foreground">
                         Belum ada data absensi.
                       </td>
                     </tr>

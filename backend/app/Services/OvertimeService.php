@@ -10,6 +10,7 @@ use App\Models\OvertimeRequest;
 use App\Models\OvertimeRequestEmployee;
 use App\Models\OvertimeSession;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -163,8 +164,13 @@ class OvertimeService
         });
     }
 
-    public function sessionClockIn(OvertimeSession $session, User $user): OvertimeSession
-    {
+    public function sessionClockIn(
+        OvertimeSession $session,
+        User $user,
+        float $lat,
+        float $lng,
+        ?UploadedFile $selfie,
+    ): OvertimeSession {
         $this->assertOwnedAndApproved($session, $user);
 
         if ($session->clock_in_at) {
@@ -172,6 +178,11 @@ class OvertimeService
         }
 
         $session->clock_in_at = now();
+        $session->clock_in_lat = $lat;
+        $session->clock_in_lng = $lng;
+        if ($selfie) {
+            $session->selfie_path = $selfie->store("overtime-selfies/{$user->id}", 'public');
+        }
         $session->save();
 
         return $session;
@@ -180,8 +191,13 @@ class OvertimeService
     /**
      * Clock out an overtime session and compute hours + compensation.
      */
-    public function sessionClockOut(OvertimeSession $session, User $user): OvertimeSession
-    {
+    public function sessionClockOut(
+        OvertimeSession $session,
+        User $user,
+        float $lat,
+        float $lng,
+        ?UploadedFile $selfie,
+    ): OvertimeSession {
         $this->assertOwnedAndApproved($session, $user);
 
         if (! $session->clock_in_at) {
@@ -198,6 +214,11 @@ class OvertimeService
 
         $session->clock_out_at = $clockOut;
         $session->total_hours = $totalHours;
+        $session->clock_out_lat = $lat;
+        $session->clock_out_lng = $lng;
+        if ($selfie) {
+            $session->selfie_out_path = $selfie->store("overtime-selfies/{$user->id}", 'public');
+        }
         $session->save();
 
         // Credit leave days if this employee chose "ganti hari".

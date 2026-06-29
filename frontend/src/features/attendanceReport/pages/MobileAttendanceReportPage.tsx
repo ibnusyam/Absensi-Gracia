@@ -50,7 +50,7 @@ export function MobileAttendanceReportPage() {
 
         {report.isLoading ? (
           <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : (
           <>

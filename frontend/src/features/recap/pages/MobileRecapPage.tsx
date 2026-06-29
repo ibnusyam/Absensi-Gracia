@@ -75,7 +75,7 @@ export function MobileRecapPage() {
           onClick={() => setTab('leave')}
           className={cn(
             'flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium',
-            tab === 'leave' ? 'bg-sky-500 text-white' : 'bg-white text-slate-600 shadow-sm',
+            tab === 'leave' ? 'bg-violet-700 text-white' : 'bg-white text-slate-600 shadow-sm',
           )}
         >
           <Plane className="h-4 w-4" /> Cuti
@@ -85,7 +85,7 @@ export function MobileRecapPage() {
           onClick={() => setTab('overtime')}
           className={cn(
             'flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium',
-            tab === 'overtime' ? 'bg-sky-500 text-white' : 'bg-white text-slate-600 shadow-sm',
+            tab === 'overtime' ? 'bg-violet-700 text-white' : 'bg-white text-slate-600 shadow-sm',
           )}
         >
           <Clock className="h-4 w-4" /> Lembur
@@ -95,11 +95,11 @@ export function MobileRecapPage() {
       <div className="space-y-3 p-4">
         {loading ? (
           <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : tab === 'leave' ? (
           <>
-            <div className="rounded-2xl bg-sky-500 p-4 text-white">
+            <div className="rounded-2xl bg-violet-700 p-4 text-white">
               <p className="text-sm opacity-90">Jumlah orang cuti periode ini</p>
               <p className="text-3xl font-bold">{leave.data?.summary.total_people ?? 0}</p>
               <p className="mt-1 text-xs opacity-90">

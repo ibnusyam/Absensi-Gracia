@@ -22,7 +22,7 @@ export function MobileUserFormPage({ mode }: { mode: 'create' | 'edit' }) {
       <div className="p-4">
         {mode === 'edit' && detail.isLoading ? (
           <div className="flex justify-center py-10">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : mode === 'edit' && (detail.isError || !detail.data) ? (
           <p className="py-10 text-center text-sm text-slate-400">Gagal memuat data karyawan.</p>

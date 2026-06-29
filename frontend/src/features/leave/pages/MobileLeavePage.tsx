@@ -14,16 +14,11 @@ import {
   useCreateLeave,
   useCancelLeave,
 } from '@/features/leave/hooks/useLeave'
+import { useCurrentUser } from '@/features/auth/hooks/useAuth'
+import { leaveTypeOptions, leaveTypeNote } from '@/features/leave/leaveOptions'
 import { requestStatusVariant } from '@/lib/statusBadge'
 import { formatDate } from '@/lib/utils'
 import type { LeaveType } from '@/types/leave'
-
-const leaveTypeOptions: { value: LeaveType; label: string }[] = [
-  { value: 'annual', label: 'Cuti Tahunan' },
-  { value: 'sick', label: 'Sakit' },
-  { value: 'emergency', label: 'Darurat' },
-  { value: 'unpaid', label: 'Tanpa Gaji' },
-]
 
 const emptyForm = {
   type: 'annual' as LeaveType,
@@ -38,6 +33,8 @@ export function MobileLeavePage() {
   const list = useLeaveList({ per_page: 20 })
   const createLeave = useCreateLeave()
   const cancelLeave = useCancelLeave()
+  const currentUser = useCurrentUser()
+  const isOutsourcing = currentUser?.jenjang === 'outsourcing'
 
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(emptyForm)
@@ -65,8 +62,8 @@ export function MobileLeavePage() {
 
       <div className="space-y-3 p-4">
         <div className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100">
-            <Plane className="h-6 w-6 text-sky-500" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100">
+            <Plane className="h-6 w-6 text-violet-700" />
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-800">{quota.data?.remaining_days ?? '-'}</p>
@@ -91,6 +88,14 @@ export function MobileLeavePage() {
                   </option>
                 ))}
               </Select>
+              {(() => {
+                const note = leaveTypeNote(form.type, isOutsourcing)
+                return (
+                  <p className={`text-xs ${note.warn ? 'text-amber-600' : 'text-slate-500'}`}>
+                    {note.text}
+                  </p>
+                )
+              })()}
             </div>
             <div className="space-y-1">
               <Label htmlFor="m-duration">Durasi</Label>
@@ -157,7 +162,7 @@ export function MobileLeavePage() {
         <h2 className="pt-2 text-sm font-semibold text-slate-500">Riwayat Pengajuan</h2>
         {list.isLoading ? (
           <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : list.data?.data.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">Belum ada pengajuan cuti.</p>

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CalendarCheck, Clock, Plane, TrendingUp } from 'lucide-react'
+import { CalendarCheck, Clock, Plane } from 'lucide-react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -62,12 +62,6 @@ export function DashboardPage() {
           title="Hadir bulan ini"
           value={summary.data?.present ?? 0}
           icon={CalendarCheck}
-          hint={`${summary.data?.late ?? 0} kali terlambat`}
-        />
-        <StatCard
-          title="Total terlambat"
-          value={`${summary.data?.total_late_minutes ?? 0} mnt`}
-          icon={TrendingUp}
         />
         <StatCard
           title="Sisa cuti"

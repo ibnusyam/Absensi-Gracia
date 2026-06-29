@@ -6,8 +6,6 @@ export function attendanceBadgeVariant(status: string): Variant {
   switch (status) {
     case 'present':
       return 'success'
-    case 'late':
-      return 'warning'
     case 'absent':
       return 'destructive'
     case 'permit':

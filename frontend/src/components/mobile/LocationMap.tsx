@@ -50,12 +50,12 @@ export function LocationMap({ position, work, height = 200 }: Props) {
           <Circle
             center={[work.lat, work.lng]}
             radius={work.radius}
-            pathOptions={{ color: '#0ea5e9', fillColor: '#0ea5e9', fillOpacity: 0.12 }}
+            pathOptions={{ color: '#6d28d9', fillColor: '#6d28d9', fillOpacity: 0.12 }}
           />
           <CircleMarker
             center={[work.lat, work.lng]}
             radius={6}
-            pathOptions={{ color: '#0284c7', fillColor: '#0284c7', fillOpacity: 1 }}
+            pathOptions={{ color: '#5b21b6', fillColor: '#5b21b6', fillOpacity: 1 }}
           >
             <Tooltip>{work.name}</Tooltip>
           </CircleMarker>

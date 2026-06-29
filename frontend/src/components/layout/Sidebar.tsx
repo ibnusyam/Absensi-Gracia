@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { CalendarClock } from 'lucide-react'
+import { Brand } from './Brand'
 import { visibleNavGroups } from './navItems'
 import { useAuthStore } from '@/features/auth/stores/authStore'
 import { cn } from '@/lib/utils'
@@ -12,9 +12,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-border bg-card">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-        <CalendarClock className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">Absensi SKY</span>
+      <div className="flex h-16 items-center border-b border-border px-6">
+        <Brand />
       </div>
 
       <nav className="flex-1 space-y-4 p-4">

@@ -51,9 +51,9 @@ class AccrueLeaveQuota extends Command
                 $jenjang = $user->jenjang ?? Jenjang::Karyawan;
 
                 if ($jenjang === Jenjang::Outsourcing) {
-                    // Present (Hadir + Terlambat) days within the cycle.
+                    // Present (Hadir) days within the cycle.
                     $present = Attendance::where('user_id', $user->id)
-                        ->whereIn('status', [AttendanceStatus::Present, AttendanceStatus::Late])
+                        ->where('status', AttendanceStatus::Present)
                         ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
                         ->count();
 

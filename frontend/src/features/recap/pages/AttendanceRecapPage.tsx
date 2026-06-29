@@ -29,7 +29,6 @@ function firstOfMonth(): string {
 /** Short letter, full label and badge colours for each status code. */
 const CELL_META: Record<AttendanceCell, { short: string; label: string; className: string }> = {
   present: { short: 'H', label: 'Hadir', className: 'bg-green-100 text-green-700' },
-  late: { short: 'T', label: 'Terlambat', className: 'bg-amber-100 text-amber-700' },
   leave_annual: { short: 'C', label: 'Cuti Tahunan', className: 'bg-blue-100 text-blue-700' },
   leave_sick: { short: 'S', label: 'Sakit', className: 'bg-purple-100 text-purple-700' },
   leave_emergency: { short: 'I', label: 'Izin', className: 'bg-cyan-100 text-cyan-700' },
@@ -42,8 +41,6 @@ const CELL_META: Record<AttendanceCell, { short: string; label: string; classNam
 /** Totals shown on the right side of the grid, in display order. */
 const TOTAL_COLUMNS: { key: string; label: string }[] = [
   { key: 'masuk', label: 'Masuk' },
-  { key: 'present', label: 'Hadir' },
-  { key: 'late', label: 'Telat' },
   { key: 'leave_annual', label: 'Cuti' },
   { key: 'leave_sick', label: 'Sakit' },
   { key: 'leave_emergency', label: 'Izin' },
@@ -52,7 +49,7 @@ const TOTAL_COLUMNS: { key: string; label: string }[] = [
 ]
 
 function totalValue(totals: Record<string, number>, key: string): number {
-  if (key === 'masuk') return (totals.present ?? 0) + (totals.late ?? 0)
+  if (key === 'masuk') return totals.present ?? 0
   return totals[key] ?? 0
 }
 
@@ -93,15 +90,12 @@ export function AttendanceRecapPage() {
 
   const dayHeaders = useMemo(() => dates.map(dayHeader), [dates])
 
-  // Per-day count of employees who came in (Hadir + Terlambat); other statuses
+  // Per-day count of employees who came in (Hadir); other statuses
   // (cuti/izin/sakit/alpha/off/libur) are not counted.
   const dailyMasuk = useMemo(
     () =>
       dates.map((_, i) =>
-        rows.reduce(
-          (acc, r) => acc + (r.cells[i] === 'present' || r.cells[i] === 'late' ? 1 : 0),
-          0,
-        ),
+        rows.reduce((acc, r) => acc + (r.cells[i] === 'present' ? 1 : 0), 0),
       ),
     [dates, rows],
   )
@@ -345,7 +339,7 @@ export function AttendanceRecapPage() {
                       <td className="sticky left-0 bottom-0 z-10 bg-slate-50 px-4 py-2 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.12)]">
                         <div className="whitespace-nowrap">Total Masuk / hari</div>
                         <div className="text-xs font-normal text-muted-foreground">
-                          Hadir + Terlambat
+                          Hadir
                         </div>
                       </td>
                       {dailyMasuk.map((count, i) => (

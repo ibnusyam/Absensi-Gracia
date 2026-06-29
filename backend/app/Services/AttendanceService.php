@@ -12,7 +12,6 @@ use App\Models\HolidayCalendar;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Models\WorkLocation;
-use App\Models\WorkSchedule;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
@@ -49,7 +48,7 @@ class AttendanceService
     }
 
     /**
-     * Clock in: geofence check, lateness evaluation, selfie storage.
+     * Clock in: geofence check and selfie storage.
      */
     public function clockIn(User $user, float $lat, float $lng, ?UploadedFile $selfie): Attendance
     {
@@ -66,15 +65,13 @@ class AttendanceService
         $location = $this->activeLocation();
         $this->geofence->assertWithinRadius($location, $lat, $lng);
 
-        [$status, $lateMinutes] = $this->evaluateLateness(now());
-
         $selfiePath = null;
         if ($selfie) {
             $selfiePath = $selfie->store("selfies/{$user->id}", 'public');
         }
 
         return DB::transaction(function () use (
-            $user, $date, $location, $lat, $lng, $selfiePath, $status, $lateMinutes, $existing
+            $user, $date, $location, $lat, $lng, $selfiePath, $existing
         ) {
             $attendance = $existing ?? new Attendance(['user_id' => $user->id, 'date' => $date]);
 
@@ -84,8 +81,7 @@ class AttendanceService
                 'clock_in_lat' => $lat,
                 'clock_in_lng' => $lng,
                 'selfie_path' => $selfiePath,
-                'status' => $status,
-                'late_minutes' => $lateMinutes,
+                'status' => AttendanceStatus::Present,
             ]);
             $attendance->save();
 
@@ -96,7 +92,7 @@ class AttendanceService
     }
 
     /**
-     * Clock out: geofence check only (no lateness), stamp clock_out_at.
+     * Clock out: geofence check only, stamp clock_out_at.
      */
     public function clockOut(User $user, float $lat, float $lng, ?UploadedFile $selfie = null): Attendance
     {
@@ -130,7 +126,7 @@ class AttendanceService
     /**
      * Monthly recap of attendance statuses for a user.
      *
-     * @return array{month:int, year:int, total_days:int, present:int, late:int, absent:int, permit:int, holiday:int, total_late_minutes:int}
+     * @return array{month:int, year:int, total_days:int, present:int, absent:int, permit:int, holiday:int}
      */
     public function monthlySummary(User $user, int $month, int $year): array
     {
@@ -143,20 +139,16 @@ class AttendanceService
 
         $counts = [
             'present' => 0,
-            'late' => 0,
             'absent' => 0,
             'permit' => 0,
             'holiday' => 0,
         ];
-
-        $totalLate = 0;
 
         foreach ($rows as $row) {
             $key = $row->status->value;
             if (array_key_exists($key, $counts)) {
                 $counts[$key]++;
             }
-            $totalLate += (int) $row->late_minutes;
         }
 
         return [
@@ -164,7 +156,6 @@ class AttendanceService
             'year' => $year,
             'total_days' => $rows->count(),
             ...$counts,
-            'total_late_minutes' => $totalLate,
         ];
     }
 
@@ -217,13 +208,12 @@ class AttendanceService
             ->pluck('user_id')
             ->flip();
 
-        $counts = ['present' => 0, 'late' => 0, 'permit' => 0, 'absent' => 0, 'holiday' => 0, 'off' => 0];
+        $counts = ['present' => 0, 'permit' => 0, 'absent' => 0, 'holiday' => 0, 'off' => 0];
         $rows = [];
 
         foreach ($users as $user) {
             $attendance = $attendances->get($user->id);
-            $actuallyPresent = $attendance
-                && in_array($attendance->status, [AttendanceStatus::Present, AttendanceStatus::Late], true);
+            $actuallyPresent = $attendance && $attendance->status === AttendanceStatus::Present;
 
             if ($actuallyPresent) {
                 // Real clock-in always wins, even during an off period.
@@ -266,7 +256,7 @@ class AttendanceService
     /**
      * Attendance status matrix across an inclusive date range for every active
      * employee (optionally scoped to a department). Each cell is a granular code
-     * (present, late, leave_annual/sick/emergency/unpaid, absent, holiday, none)
+     * (present, leave_annual/sick/unpaid, absent, holiday, none)
      * so the recap can render a per-day
      * grid plus per-employee totals.
      *
@@ -350,7 +340,7 @@ class AttendanceService
         foreach ($users as $user) {
             $cells = [];
             $totals = [
-                'present' => 0, 'late' => 0,
+                'present' => 0,
                 'leave_annual' => 0, 'leave_sick' => 0, 'leave_emergency' => 0,
                 'absent' => 0, 'holiday' => 0, 'off' => 0,
             ];
@@ -399,8 +389,8 @@ class AttendanceService
         $leaveType = $leaveMap[$user->id.'|'.$ds] ?? null;
         $isNonWorkday = Carbon::parse($ds)->isWeekend() || $holidays->has($ds);
 
-        // Actually clocked in → reflect present/late even if also flagged on leave/off.
-        if ($attendance && in_array($attendance->status, [AttendanceStatus::Present, AttendanceStatus::Late], true)) {
+        // Actually clocked in → reflect present even if also flagged on leave/off.
+        if ($attendance && $attendance->status === AttendanceStatus::Present) {
             return $attendance->status->value;
         }
 
@@ -414,8 +404,7 @@ class AttendanceService
             return match ($leaveType) {
                 LeaveType::Annual->value => 'leave_annual',
                 LeaveType::Sick->value => 'leave_sick',
-                LeaveType::Emergency->value => 'leave_emergency',
-                // Unpaid leave is folded into "Izin" (no separate recap status).
+                // Unpaid ("Cuti Potong Gaji") is folded into "Izin" in the recap.
                 LeaveType::Unpaid->value => 'leave_emergency',
                 default => 'leave_annual',
             };
@@ -459,35 +448,5 @@ class AttendanceService
         }
 
         return $location;
-    }
-
-    /**
-     * Compare a UTC clock-in moment against the active schedule's deadline
-     * (interpreted in the display timezone) to decide present vs. late.
-     *
-     * @return array{0: AttendanceStatus, 1: int|null}
-     */
-    private function evaluateLateness(Carbon $clockInUtc): array
-    {
-        $schedule = WorkSchedule::first();
-
-        if (! $schedule) {
-            return [AttendanceStatus::Present, null];
-        }
-
-        $tz = $this->displayTz();
-        $local = $clockInUtc->copy()->setTimezone($tz);
-
-        $deadline = Carbon::parse($local->toDateString().' '.$schedule->clock_in_deadline, $tz);
-        $threshold = $deadline->copy()->addMinutes((int) $schedule->late_tolerance_minutes);
-
-        if ($local->greaterThan($threshold)) {
-            // Minutes counted from the deadline itself (excluding tolerance grace).
-            $lateMinutes = $deadline->diffInMinutes($local);
-
-            return [AttendanceStatus::Late, (int) $lateMinutes];
-        }
-
-        return [AttendanceStatus::Present, null];
     }
 }

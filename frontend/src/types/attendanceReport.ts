@@ -11,7 +11,6 @@ export interface AttendanceReportRow {
 export interface AttendanceReportSummary {
   total: number
   present: number
-  late: number
   permit: number
   absent: number
   holiday: number

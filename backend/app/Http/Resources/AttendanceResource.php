@@ -28,7 +28,6 @@ class AttendanceResource extends JsonResource
             'selfie_out_url' => $this->selfie_out_path ? Storage::disk('public')->url($this->selfie_out_path) : null,
             'status' => $this->status->value,
             'status_label' => $this->status->label(),
-            'late_minutes' => $this->late_minutes,
             'note' => $this->note,
             'location' => new WorkLocationResource($this->whenLoaded('location')),
             'user' => new UserResource($this->whenLoaded('user')),

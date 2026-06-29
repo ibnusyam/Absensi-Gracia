@@ -77,7 +77,6 @@ export function UserFormView({ mode, user, onSaved, onCancel }: Props) {
 
   // Employment
   const [jenjang, setJenjang] = useState<'karyawan' | 'outsourcing'>(user?.jenjang ?? 'karyawan')
-  const [statusKarir, setStatusKarir] = useState(user?.status_karir ?? '')
   const [namaJabatan, setNamaJabatan] = useState(user?.nama_jabatan ?? '')
   const [kodeJabatan, setKodeJabatan] = useState(user?.kode_jabatan ?? '')
   const [tanggalSpk, setTanggalSpk] = useState(d(user?.tanggal_spk))
@@ -124,7 +123,6 @@ export function UserFormView({ mode, user, onSaved, onCancel }: Props) {
       rekening_bni: s(rekeningBni),
       // Employment
       jenjang,
-      status_karir: s(statusKarir),
       tanggal_spk: tanggalSpk || null,
       kartu_pensiun: kartuPensiun || null,
       kode_jabatan: s(kodeJabatan),
@@ -214,7 +212,7 @@ export function UserFormView({ mode, user, onSaved, onCancel }: Props) {
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="u-jenjang">Jenjang</Label>
+            <Label htmlFor="u-jenjang">Status Karir</Label>
             <Select
               id="u-jenjang"
               value={jenjang}
@@ -226,14 +224,6 @@ export function UserFormView({ mode, user, onSaved, onCancel }: Props) {
             <p className="text-xs text-muted-foreground">
               Karyawan: +1 hari cuti tiap siklus. Outsourcing: +1 hanya bila masuk &gt;20 hari.
             </p>
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="u-statuskarir">Status karir</Label>
-            <Select id="u-statuskarir" value={statusKarir} onChange={(e) => setStatusKarir(e.target.value)}>
-              <option value="">-</option>
-              <option value="Kontrak">Kontrak</option>
-              <option value="Tetap">Tetap</option>
-            </Select>
           </div>
           <div className="space-y-1">
             <Label htmlFor="u-jab">Nama jabatan</Label>

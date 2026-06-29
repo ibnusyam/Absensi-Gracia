@@ -15,6 +15,12 @@ class OvertimeSession extends Model
         'clock_in_at',
         'clock_out_at',
         'total_hours',
+        'clock_in_lat',
+        'clock_in_lng',
+        'clock_out_lat',
+        'clock_out_lng',
+        'selfie_path',
+        'selfie_out_path',
     ];
 
     protected function casts(): array

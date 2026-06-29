@@ -76,7 +76,6 @@ class RecapController extends Controller
             'dates' => $matrix['dates'],
             'legend' => [
                 'present' => 'Hadir',
-                'late' => 'Terlambat',
                 'leave_annual' => 'Cuti Tahunan',
                 'leave_sick' => 'Sakit',
                 'leave_emergency' => 'Izin',

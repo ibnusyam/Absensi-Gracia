@@ -1,7 +1,7 @@
 import type { User } from './user'
 import type { ApprovalLog } from './approval'
 
-export type LeaveType = 'annual' | 'sick' | 'emergency' | 'unpaid'
+export type LeaveType = 'annual' | 'unpaid' | 'sick'
 export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled'
 
 export interface LeaveRequest {
@@ -9,6 +9,8 @@ export interface LeaveRequest {
   user_id: number
   type: LeaveType
   type_label: string
+  /** Whether this leave is recorded as cutting salary (potong gaji). */
+  cuts_salary: boolean
   start_date: string
   end_date: string
   half_day: boolean

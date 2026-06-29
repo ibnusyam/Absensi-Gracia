@@ -75,12 +75,6 @@ export function AttendanceDetailModal({
                 </p>
               </div>
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-slate-500">Keterlambatan</p>
-                <p className="font-semibold text-slate-800">
-                  {a.late_minutes ? `${a.late_minutes} menit` : '-'}
-                </p>
-              </div>
-              <div className="rounded-lg bg-slate-50 p-3">
                 <p className="text-slate-500">Lokasi</p>
                 <p className="font-semibold text-slate-800">{a.location?.name ?? '-'}</p>
               </div>

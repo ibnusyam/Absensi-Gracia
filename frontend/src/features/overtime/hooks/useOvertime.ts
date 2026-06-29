@@ -1,12 +1,15 @@
+import { useRef, type ChangeEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   overtimeApi,
   type CreateOvertimePayload,
   type OvertimeFilters,
+  type OvertimeSessionClockPayload,
   type UpdateOvertimeEmployeePayload,
 } from '@/api/overtime.api'
 import { getApiErrorMessage } from '@/api/client'
 import { toast } from '@/components/ui/toast'
+import { useGeolocation } from '@/hooks/useGeolocation'
 
 export function useOvertimeList(filters: OvertimeFilters = {}) {
   return useQuery({
@@ -52,7 +55,7 @@ export function useOvertimeSessionClock() {
   const qc = useQueryClient()
 
   const clockIn = useMutation({
-    mutationFn: (sessionId: number) => overtimeApi.sessionClockIn(sessionId),
+    mutationFn: (payload: OvertimeSessionClockPayload) => overtimeApi.sessionClockIn(payload),
     onSuccess: () => {
       toast.success('Mulai lembur dicatat.')
       qc.invalidateQueries({ queryKey: ['overtime'] })
@@ -61,7 +64,7 @@ export function useOvertimeSessionClock() {
   })
 
   const clockOut = useMutation({
-    mutationFn: (sessionId: number) => overtimeApi.sessionClockOut(sessionId),
+    mutationFn: (payload: OvertimeSessionClockPayload) => overtimeApi.sessionClockOut(payload),
     onSuccess: () => {
       toast.success('Lembur selesai dicatat.')
       qc.invalidateQueries({ queryKey: ['overtime'] })
@@ -70,4 +73,45 @@ export function useOvertimeSessionClock() {
   })
 
   return { clockIn, clockOut }
+}
+
+/**
+ * Drives an overtime session clock-in/out with a selfie + GPS, mirroring the
+ * daily attendance capture: `trigger()` opens the camera, and the captured
+ * photo is submitted together with the current coordinates. Render the returned
+ * `fileRef`/`onChange` on a hidden `<input type="file" capture="user">`.
+ */
+export function useOvertimeClockCapture() {
+  const { clockIn, clockOut } = useOvertimeSessionClock()
+  const geo = useGeolocation()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const ctx = useRef<{ action: 'in' | 'out'; sessionId: number }>({ action: 'in', sessionId: 0 })
+
+  const trigger = (action: 'in' | 'out', sessionId: number) => {
+    ctx.current = { action, sessionId }
+    fileRef.current?.click()
+  }
+
+  const onChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null
+    if (!file) return
+    try {
+      const coords = await geo.request()
+      const payload: OvertimeSessionClockPayload = {
+        sessionId: ctx.current.sessionId,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        selfie: file,
+      }
+      if (ctx.current.action === 'in') await clockIn.mutateAsync(payload)
+      else await clockOut.mutateAsync(payload)
+    } catch {
+      if (geo.error) toast.error(geo.error)
+    } finally {
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const busy = clockIn.isPending || clockOut.isPending || geo.loading
+  return { fileRef, onChange, trigger, busy }
 }

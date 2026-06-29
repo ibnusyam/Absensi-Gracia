@@ -172,7 +172,7 @@ export function MobileAttendancePage() {
             type="button"
             disabled={busy}
             onClick={() => triggerCamera('in')}
-            className="flex w-full items-center justify-center gap-3 rounded-xl bg-sky-500 py-4 text-lg font-semibold text-white disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-3 rounded-xl bg-violet-700 py-4 text-lg font-semibold text-white disabled:opacity-60"
           >
             {busy ? <Spinner className="h-6 w-6" /> : <ScanFace className="h-6 w-6" />}
             Clock In

@@ -3,10 +3,10 @@
 @theme {
   --color-border: hsl(214 32% 91%);
   --color-input: hsl(214 32% 91%);
-  --color-ring: hsl(221 83% 53%);
+  --color-ring: hsl(263 70% 50%);
   --color-background: hsl(0 0% 100%);
   --color-foreground: hsl(222 47% 11%);
-  --color-primary: hsl(221 83% 53%);
+  --color-primary: hsl(263 70% 50%);
   --color-primary-foreground: hsl(0 0% 100%);
   --color-secondary: hsl(210 40% 96%);
   --color-secondary-foreground: hsl(222 47% 11%);

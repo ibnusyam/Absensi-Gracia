@@ -57,7 +57,7 @@ class LeaveSeeder extends Seeder
 
         // ---- Pending (muncul di Pengajuan Karyawan) ----
         $this->make($service, $employees[3], LeaveType::Annual, $weekdays[9], $weekdays[10], 'Urusan pribadi.');
-        $this->make($service, $employees[0], LeaveType::Emergency, $weekdays[11], $weekdays[11], 'Keperluan mendadak.');
+        $this->make($service, $employees[0], LeaveType::Sick, $weekdays[11], $weekdays[11], 'Keperluan mendadak.');
         // Setengah hari, menunggu — 0,5 hari.
         $this->make($service, $employees[2], LeaveType::Annual, $weekdays[10], $weekdays[10], 'Kontrol dokter, setengah hari.', true);
 

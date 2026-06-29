@@ -75,7 +75,6 @@ export interface AttendanceRecapFilters {
 /** Granular per-day status code for a single cell of the attendance grid. */
 export type AttendanceCell =
   | 'present'
-  | 'late'
   | 'leave_annual'
   | 'leave_sick'
   | 'leave_emergency'

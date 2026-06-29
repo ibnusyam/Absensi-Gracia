@@ -32,7 +32,7 @@ export function UserFormPage({ mode }: { mode: 'create' | 'edit' }) {
 
       {mode === 'edit' && detail.isLoading ? (
         <div className="flex justify-center py-10">
-          <Spinner className="h-6 w-6 text-sky-500" />
+          <Spinner className="h-6 w-6 text-violet-700" />
         </div>
       ) : mode === 'edit' && (detail.isError || !detail.data) ? (
         <p className="py-10 text-center text-sm text-muted-foreground">Gagal memuat data karyawan.</p>

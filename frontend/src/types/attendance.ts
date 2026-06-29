@@ -1,6 +1,6 @@
 import type { User } from './user'
 
-export type AttendanceStatus = 'present' | 'late' | 'absent' | 'permit' | 'holiday' | 'off'
+export type AttendanceStatus = 'present' | 'absent' | 'permit' | 'holiday' | 'off'
 
 export interface WorkLocation {
   id: number
@@ -27,7 +27,6 @@ export interface Attendance {
   selfie_out_url: string | null
   status: AttendanceStatus
   status_label: string
-  late_minutes: number | null
   note: string | null
   location?: WorkLocation | null
   user?: User | null
@@ -38,9 +37,7 @@ export interface AttendanceSummary {
   year: number
   total_days: number
   present: number
-  late: number
   absent: number
   permit: number
   holiday: number
-  total_late_minutes: number
 }

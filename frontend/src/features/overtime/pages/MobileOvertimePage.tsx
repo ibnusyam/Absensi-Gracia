@@ -12,7 +12,7 @@ import { Spinner } from '@/components/ui/spinner'
 import {
   useOvertimeList,
   useCreateOvertime,
-  useOvertimeSessionClock,
+  useOvertimeClockCapture,
 } from '@/features/overtime/hooks/useOvertime'
 import { useUsers } from '@/features/users/hooks/useUsers'
 import { useCurrentUser, useHasRole } from '@/features/auth/hooks/useAuth'
@@ -31,11 +31,16 @@ const defaultStart = (date: string) => (date ? `${date}T17:00` : '')
 const defaultEnd = (date: string) => (date ? `${date}T20:00` : '')
 
 function Session({ employee, currentUserId }: { employee: OvertimeRequestEmployee; currentUserId?: number }) {
-  const { clockIn, clockOut } = useOvertimeSessionClock()
+  const { fileRef, onChange, trigger, busy } = useOvertimeClockCapture()
   const s = employee.session
   const mine = employee.user_id === currentUserId
 
   if (!s) return <Badge variant="muted">Menunggu</Badge>
+
+  const camera = (
+    <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={onChange} />
+  )
+
   if (s.clock_out_at)
     return (
       <span className="text-right text-xs text-slate-500">
@@ -45,16 +50,22 @@ function Session({ employee, currentUserId }: { employee: OvertimeRequestEmploye
     )
   if (s.clock_in_at)
     return mine ? (
-      <Button size="sm" variant="success" disabled={clockOut.isPending} onClick={() => clockOut.mutate(s.id)}>
-        <LogOut className="h-4 w-4" /> Selesai
-      </Button>
+      <>
+        {camera}
+        <Button size="sm" variant="success" disabled={busy} onClick={() => trigger('out', s.id)}>
+          <LogOut className="h-4 w-4" /> Selesai
+        </Button>
+      </>
     ) : (
       <span className="text-xs text-slate-500">Mulai {formatTime(s.clock_in_at)}</span>
     )
   return mine ? (
-    <Button size="sm" disabled={clockIn.isPending} onClick={() => clockIn.mutate(s.id)}>
-      <LogIn className="h-4 w-4" /> Mulai
-    </Button>
+    <>
+      {camera}
+      <Button size="sm" disabled={busy} onClick={() => trigger('in', s.id)}>
+        <LogIn className="h-4 w-4" /> Mulai
+      </Button>
+    </>
   ) : (
     <Badge variant="muted">Belum mulai</Badge>
   )
@@ -223,7 +234,7 @@ export function MobileOvertimePage() {
 
         {list.isLoading ? (
           <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : list.data?.data.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">Belum ada pengajuan lembur.</p>

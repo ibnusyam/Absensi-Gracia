@@ -24,7 +24,6 @@ class Attendance extends Model
         'selfie_path',
         'selfie_out_path',
         'status',
-        'late_minutes',
         'note',
     ];
 
@@ -39,7 +38,6 @@ class Attendance extends Model
             'clock_out_lat' => 'decimal:8',
             'clock_out_lng' => 'decimal:8',
             'status' => AttendanceStatus::class,
-            'late_minutes' => 'integer',
         ];
     }
 

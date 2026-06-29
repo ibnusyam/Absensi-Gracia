@@ -2,7 +2,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Navigate } from 'react-router-dom'
-import { CalendarClock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,13 +41,15 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 to-slate-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <CalendarClock className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl">Absensi SKY</CardTitle>
+          <img
+            src="/logo-gracia.svg"
+            alt="Gracia Pharmindo"
+            className="mx-auto mb-2 h-14 w-14"
+          />
+          <CardTitle className="text-2xl">Absensi Gracia</CardTitle>
           <CardDescription>Masuk untuk melanjutkan ke aplikasi absensi</CardDescription>
         </CardHeader>
         <CardContent>

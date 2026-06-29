@@ -15,6 +15,17 @@ export interface OvertimeSession {
   clock_in_at: string | null
   clock_out_at: string | null
   total_hours: number | null
+  clock_in_lat: number | null
+  clock_in_lng: number | null
+  clock_out_lat: number | null
+  clock_out_lng: number | null
+  selfie_url: string | null
+  selfie_out_url: string | null
+}
+
+export interface OvertimePayTier {
+  multiplier: number
+  hours: number
 }
 
 export interface OvertimeRequestEmployee {
@@ -26,6 +37,12 @@ export interface OvertimeRequestEmployee {
   compensation_type: CompensationType
   compensation_label: string
   leave_days_credited: number
+  /** Money-compensation pay-tier breakdown (1.5×/2×/3×). Empty until completed. */
+  pay_tiers: OvertimePayTier[]
+  /** True when the overtime date is a weekend/holiday (affects tier rates). */
+  is_holiday: boolean | null
+  /** Sum of hours × multiplier, i.e. equivalent paid hours. */
+  weighted_hours: number | null
   user?: User | null
   session?: OvertimeSession | null
 }

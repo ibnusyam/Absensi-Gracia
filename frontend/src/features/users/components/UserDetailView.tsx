@@ -62,7 +62,7 @@ function BiodataTab({ detail }: { detail: UserDetail }) {
         {u.avatar_url ? (
           <img src={u.avatar_url} alt={u.name} className="h-16 w-16 rounded-full object-cover" />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-sky-100 text-lg font-bold text-sky-600">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-violet-100 text-lg font-bold text-violet-700">
             {initials(u.name)}
           </div>
         )}
@@ -87,7 +87,7 @@ function BiodataTab({ detail }: { detail: UserDetail }) {
         }
       />
       <Row label="Bergabung" value={u.joined_at ? formatDate(u.joined_at) : '-'} />
-      <Row label="Jenjang" value={u.jenjang_label ?? '-'} />
+      <Row label="Status Karir" value={u.jenjang_label ?? '-'} />
       <Row
         label="Sisa cuti tahun ini"
         value={
@@ -119,11 +119,10 @@ function BiodataTab({ detail }: { detail: UserDetail }) {
         </>
       )}
 
-      {(u.status_karir || u.nama_jabatan || u.kode_jabatan || u.tanggal_spk || u.kartu_pensiun ||
+      {(u.nama_jabatan || u.kode_jabatan || u.tanggal_spk || u.kartu_pensiun ||
         u.keterangan_data) && (
         <>
           <SectionTitle>Kepegawaian</SectionTitle>
-          <OptRow label="Status karir" value={u.status_karir} />
           <OptRow label="Jabatan" value={u.nama_jabatan} />
           <OptRow label="Kode jabatan" value={u.kode_jabatan} />
           <OptRow label="Tanggal SPK" value={u.tanggal_spk ? formatDate(u.tanggal_spk) : null} />
@@ -395,7 +394,7 @@ export function UserDetailView({ userId }: { userId: number }) {
       <div className="p-4">
         {detail.isLoading ? (
           <div className="flex justify-center py-10">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : detail.isError || !detail.data ? (
           <p className="py-10 text-center text-sm text-slate-400">Gagal memuat detail karyawan.</p>

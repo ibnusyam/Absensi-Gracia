@@ -39,7 +39,7 @@ export function MobileRequestsPage() {
           onClick={() => setTab('leave')}
           className={cn(
             'flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium',
-            tab === 'leave' ? 'bg-sky-500 text-white' : 'bg-white text-slate-600 shadow-sm',
+            tab === 'leave' ? 'bg-violet-700 text-white' : 'bg-white text-slate-600 shadow-sm',
           )}
         >
           <Plane className="h-4 w-4" /> Cuti
@@ -49,7 +49,7 @@ export function MobileRequestsPage() {
           onClick={() => setTab('overtime')}
           className={cn(
             'flex flex-1 items-center justify-center gap-2 rounded-xl py-2 text-sm font-medium',
-            tab === 'overtime' ? 'bg-sky-500 text-white' : 'bg-white text-slate-600 shadow-sm',
+            tab === 'overtime' ? 'bg-violet-700 text-white' : 'bg-white text-slate-600 shadow-sm',
           )}
         >
           <Clock className="h-4 w-4" /> Lembur
@@ -59,7 +59,7 @@ export function MobileRequestsPage() {
       <div className="space-y-3 p-4">
         {loading ? (
           <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : tab === 'leave' ? (
           leave.data?.data.length === 0 ? (

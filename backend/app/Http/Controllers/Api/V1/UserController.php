@@ -48,7 +48,6 @@ class UserController extends Controller
             'rekening_bni' => ['nullable', 'string', 'max:100'],
             // Employment
             'jenjang' => ['nullable', Rule::enum(\App\Enums\Jenjang::class)],
-            'status_karir' => ['nullable', 'string', 'max:20'],
             'tanggal_spk' => ['nullable', 'date'],
             'kartu_pensiun' => ['nullable', 'date'],
             'kode_jabatan' => ['nullable', 'string', 'max:100'],

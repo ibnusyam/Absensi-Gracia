@@ -6,7 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 export function MobileHeader({ title, action }: { title: string; action?: ReactNode }) {
   const navigate = useNavigate()
   return (
-    <header className="sticky top-0 z-20 flex items-center gap-2 bg-sky-500 px-3 py-4 text-white shadow-sm">
+    <header className="sticky top-0 z-20 flex items-center gap-2 bg-violet-700 px-3 py-4 text-white shadow-sm">
       <button
         type="button"
         onClick={() => navigate(-1)}

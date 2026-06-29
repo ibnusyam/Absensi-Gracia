@@ -38,7 +38,7 @@ export function MobileHomePage() {
   return (
     <div className="pb-8">
       {/* Blue header */}
-      <div className="rounded-b-3xl bg-gradient-to-b from-sky-400 to-sky-500 px-4 pb-6 pt-6 text-white">
+      <div className="rounded-b-3xl bg-gradient-to-b from-violet-600 to-violet-800 px-4 pb-6 pt-6 text-white">
         <div className="flex items-center gap-3">
           {user?.avatar_url ? (
             <img
@@ -76,13 +76,13 @@ export function MobileHomePage() {
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="rounded-xl bg-white p-4 text-slate-800 shadow">
             <p className="text-2xl font-bold">
-              {quota.data?.remaining_days ?? '-'} <span className="text-sm font-medium text-sky-500">hari</span>
+              {quota.data?.remaining_days ?? '-'} <span className="text-sm font-medium text-violet-700">hari</span>
             </p>
             <p className="text-sm text-slate-500">Sisa Cuti</p>
           </div>
           <div className="rounded-xl bg-white p-4 text-slate-800 shadow">
             <p className="flex items-center gap-2 text-2xl font-bold">
-              0 <FileCheck2 className="h-5 w-5 text-sky-500" />
+              0 <FileCheck2 className="h-5 w-5 text-violet-700" />
             </p>
             <p className="text-sm text-slate-500">Dokumen Ditinjau</p>
           </div>
@@ -124,7 +124,7 @@ export function MobileHomePage() {
       {/* Admin segment: monitoring & approval (only for those with access) */}
       {adminGroups.map((group) => (
         <div key={group.title} className="px-4 pt-6">
-          <h2 className="mb-3 text-lg font-bold text-sky-600">{group.title}</h2>
+          <h2 className="mb-3 text-lg font-bold text-violet-700">{group.title}</h2>
           <div className="grid grid-cols-3 gap-3">
             {group.items.map(({ label, path, icon: Icon }) => (
               <Link
@@ -132,7 +132,7 @@ export function MobileHomePage() {
                 to={path}
                 className="flex flex-col items-start gap-2 rounded-xl bg-white p-3 text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
               >
-                <Icon className="h-6 w-6 text-sky-500" />
+                <Icon className="h-6 w-6 text-violet-700" />
                 <span className="text-sm font-medium">{label}</span>
               </Link>
             ))}
@@ -142,10 +142,10 @@ export function MobileHomePage() {
 
       {/* Recent attendance */}
       <div className="px-4 pt-6">
-        <h2 className="mb-3 text-lg font-bold text-sky-600">Absensi Terbaru</h2>
+        <h2 className="mb-3 text-lg font-bold text-violet-700">Absensi Terbaru</h2>
         {recent.isLoading ? (
           <div className="flex justify-center py-8">
-            <Spinner className="h-6 w-6 text-sky-500" />
+            <Spinner className="h-6 w-6 text-violet-700" />
           </div>
         ) : recent.data?.data.length === 0 ? (
           <p className="py-8 text-center text-sm text-slate-400">Belum ada data absensi.</p>

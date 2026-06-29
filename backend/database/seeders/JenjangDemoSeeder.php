@@ -99,7 +99,6 @@ class JenjangDemoSeeder extends Seeder
                         'clock_out_at' => $clockIn->copy()->addHours(8)->addMinutes(30),
                         'location_id' => $location?->id,
                         'status' => AttendanceStatus::Present,
-                        'late_minutes' => null,
                     ],
                 );
             } else {
